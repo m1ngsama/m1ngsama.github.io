@@ -1,9 +1,5 @@
 export function initMotion(reducedMotion: boolean): () => void {
   const root = document.documentElement;
-  const progress = document.querySelector<HTMLElement>('#scroll-progress');
-  const index = document.querySelector<HTMLElement>('#phase-index');
-  const phases = Array.from(document.querySelectorAll<HTMLElement>('.phase'));
-  const phaseLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('.phase-nav a'));
   const cleanups: Array<() => void> = [];
   let frame = 0;
 
@@ -11,16 +7,7 @@ export function initMotion(reducedMotion: boolean): () => void {
     frame = 0;
     const max = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
     const value = Math.min(Math.max(window.scrollY / max, 0), 1);
-    const active = Math.min(phases.length - 1, Math.round(value * (phases.length - 1)));
-
-    progress?.style.setProperty('transform', `scaleX(${value})`);
-    if (index) index.textContent = String(active + 1).padStart(2, '0');
     root.classList.toggle('has-scrolled', value > 0.018);
-
-    phaseLinks.forEach((link, linkIndex) => {
-      if (linkIndex === active) link.setAttribute('aria-current', 'step');
-      else link.removeAttribute('aria-current');
-    });
   };
 
   const scheduleUpdate = () => {

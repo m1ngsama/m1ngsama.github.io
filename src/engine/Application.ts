@@ -1,16 +1,12 @@
 import * as THREE from 'three';
 import { Composer } from '../postprocessing/Composer';
 import { HeroScene } from '../scenes/hero/HeroScene';
+import { sampleSequence } from '../scenes/hero/sequence';
 import { createCamera } from './camera';
 import { createRenderer, getQuality, targetPixelRatio, type Quality } from './renderer';
 
 interface ApplicationOptions {
   reducedMotion: boolean;
-}
-
-function smoothStep(edge0: number, edge1: number, value: number): number {
-  const x = THREE.MathUtils.clamp((value - edge0) / (edge1 - edge0), 0, 1);
-  return x * x * (3 - 2 * x);
 }
 
 export class Application {
@@ -31,7 +27,10 @@ export class Application {
   private destroyed = false;
   private scrollCurrent = 0;
   private scrollTarget = 0;
+  private scrollVelocity = 0;
   private pulse = 0;
+  private charge = 0;
+  private pressing = false;
   private adaptiveScale = 1;
   private fpsStartedAt = performance.now();
   private fpsFrames = 0;
@@ -45,7 +44,7 @@ export class Application {
   ) {
     this.quality = getQuality();
     this.renderer = createRenderer(canvas, this.quality);
-    this.scene.background = new THREE.Color(0x020204);
+    this.scene.background = new THREE.Color(0x010103);
     this.hero = new HeroScene(this.quality);
     this.scene.add(this.hero);
     this.composer = new Composer(this.renderer, this.scene, this.camera, this.quality, options.reducedMotion);
@@ -76,6 +75,8 @@ export class Application {
     if (!this.options.reducedMotion) {
       window.addEventListener('pointermove', this.handlePointer, { passive: true });
       window.addEventListener('pointerdown', this.handleImpulse, { passive: true });
+      window.addEventListener('pointerup', this.handleRelease, { passive: true });
+      window.addEventListener('pointercancel', this.handleRelease, { passive: true });
       if (this.precisePointer) document.documentElement.addEventListener('pointerleave', this.resetPointer);
     }
   }
@@ -89,7 +90,15 @@ export class Application {
 
   private handleImpulse = (event: PointerEvent): void => {
     this.handlePointer(event);
-    this.pulse = Math.min(1, this.pulse + 0.82);
+    this.pressing = true;
+    this.charge = Math.max(this.charge, 0.16);
+    this.pulse = Math.min(1, this.pulse + 0.24);
+  };
+
+  private handleRelease = (): void => {
+    if (!this.pressing) return;
+    this.pressing = false;
+    this.pulse = Math.min(1, this.pulse + 0.22 + this.charge * 0.7);
   };
 
   private resetPointer = (): void => {
@@ -103,10 +112,12 @@ export class Application {
 
   private handleVisibility = (): void => {
     if (document.hidden) {
+      this.pressing = false;
       this.stopLoop();
     } else if (!this.options.reducedMotion && !this.destroyed && !this.paused) {
       this.lastFrameTime = performance.now();
       this.lastRenderTime = this.lastFrameTime;
+      this.resetPerformanceSample(this.lastFrameTime);
       this.running = true;
       this.frameId = requestAnimationFrame(this.tick);
     }
@@ -128,6 +139,7 @@ export class Application {
     if (!this.options.reducedMotion && !this.paused) {
       this.lastFrameTime = performance.now();
       this.lastRenderTime = this.lastFrameTime;
+      this.resetPerformanceSample(this.lastFrameTime);
       this.running = true;
       this.frameId = requestAnimationFrame(this.tick);
     }
@@ -137,7 +149,7 @@ export class Application {
     if (!this.running || this.destroyed) return;
     this.frameId = requestAnimationFrame(this.tick);
 
-    const frameInterval = this.quality === 'low' ? 1000 / 30 : 1000 / 60;
+    const frameInterval = this.quality === 'low' ? 1000 / 45 : 1000 / 60;
     if (now - this.lastRenderTime < frameInterval - 1) return;
 
     const delta = Math.min(Math.max((now - this.lastFrameTime) / 1000, 0), 0.05);
@@ -146,8 +158,21 @@ export class Application {
     this.elapsed += delta;
     const damping = 1 - Math.exp(-delta * 4.2);
     this.pointer.lerp(this.pointerTarget, damping);
+    const previousScroll = this.scrollCurrent;
     this.scrollCurrent = THREE.MathUtils.lerp(this.scrollCurrent, this.scrollTarget, damping * 0.68);
-    this.pulse *= Math.exp(-delta * 2.15);
+    const instantVelocity = delta > 0 ? (this.scrollCurrent - previousScroll) / delta : 0;
+    this.scrollVelocity = THREE.MathUtils.lerp(
+      this.scrollVelocity,
+      instantVelocity,
+      1 - Math.exp(-delta * 8.5),
+    );
+    if (this.pressing) {
+      this.charge = Math.min(1, this.charge + delta * 0.72);
+      this.pulse = Math.max(this.pulse, this.charge * 0.58);
+    } else {
+      this.charge *= Math.exp(-delta * 3.4);
+      this.pulse *= Math.exp(-delta * 2.15);
+    }
 
     this.updateCamera(delta);
     this.hero.update(
@@ -157,46 +182,36 @@ export class Application {
       this.scrollCurrent,
       this.isMobile(),
       this.pulse,
+      this.scrollVelocity,
     );
-    this.composer.update(this.elapsed, this.pulse, this.scrollCurrent);
+    this.composer.update(this.elapsed, this.pulse, this.scrollCurrent, this.pointer, this.scrollVelocity);
     this.composer.render(delta);
     this.checkPerformance(now);
   };
 
   private updateCamera(delta: number): void {
-    const progress = this.scrollCurrent;
-    const reveal = smoothStep(0.06, 0.48, progress);
-    const orbit = smoothStep(0.47, 0.72, progress);
-    const horizon = smoothStep(0.78, 0.99, progress);
     const mobile = this.isMobile();
-    const wideZ = mobile ? 9.1 : 7.45;
-
-    let x = THREE.MathUtils.lerp(mobile ? 0.1 : 0.58, mobile ? 0.35 : 1.05, reveal);
-    x = THREE.MathUtils.lerp(x, mobile ? -0.35 : -1.05, orbit);
-    x = THREE.MathUtils.lerp(x, 0, horizon);
-    let y = THREE.MathUtils.lerp(-0.05, 0.38, reveal);
-    y = THREE.MathUtils.lerp(y, -0.14, orbit);
-    y = THREE.MathUtils.lerp(y, 0, horizon);
-    let z = THREE.MathUtils.lerp(mobile ? 3.75 : 3.05, wideZ, reveal);
-    z -= orbit * (mobile ? 0.18 : 0.68);
-    z += horizon * (mobile ? 0.72 : 0.58);
-
+    const frame = sampleSequence(this.scrollCurrent, mobile);
     const pointerRange = mobile ? 0.035 : 0.13;
-    this.cameraTarget.set(
-      x + this.pointer.x * pointerRange,
-      y + this.pointer.y * pointerRange * 0.7,
-      z,
-    );
+    this.cameraTarget.copy(frame.position);
+    this.cameraTarget.x += this.pointer.x * pointerRange;
+    this.cameraTarget.y += this.pointer.y * pointerRange * 0.7;
     const damping = delta === 0 ? 1 : 1 - Math.exp(-delta * 3.2);
     this.camera.position.lerp(this.cameraTarget, damping);
-
-    const earlyFocus = THREE.MathUtils.lerp(0.45, 0, reveal);
-    this.lookTarget.set(
-      earlyFocus + this.pointer.x * 0.045,
-      this.pointer.y * 0.03,
-      0,
-    );
+    this.lookTarget.copy(frame.target);
+    this.lookTarget.x += this.pointer.x * 0.04;
+    this.lookTarget.y += this.pointer.y * 0.025;
     this.camera.lookAt(this.lookTarget);
+    const nextFov = frame.fov;
+    if (Math.abs(this.camera.fov - nextFov) > 0.001) {
+      this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, nextFov, damping);
+      this.camera.updateProjectionMatrix();
+    }
+  }
+
+  private resetPerformanceSample(now = performance.now()): void {
+    this.fpsFrames = 0;
+    this.fpsStartedAt = now;
   }
 
   private checkPerformance(now: number): void {
@@ -215,11 +230,11 @@ export class Application {
   }
 
   private renderStaticFrame(): void {
-    const progress = this.options.reducedMotion ? 0.7 : this.scrollTarget;
+    const progress = this.options.reducedMotion ? 0.47 : this.scrollTarget;
     this.scrollCurrent = progress;
     this.updateCamera(0);
-    this.hero.update(0.8, 0, this.pointer, progress, this.isMobile(), 0);
-    this.composer.update(0.8, 0, progress);
+    this.hero.update(0.8, 0, this.pointer, progress, this.isMobile(), 0, 0);
+    this.composer.update(0.8, 0, progress, this.pointer, 0);
     this.composer.render(0);
   }
 
@@ -238,7 +253,6 @@ export class Application {
     const width = window.innerWidth;
     const height = window.innerHeight;
     this.camera.aspect = width / Math.max(height, 1);
-    this.camera.fov = width < 760 ? 38 : 34;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
     this.applyPixelRatio();
@@ -258,6 +272,7 @@ export class Application {
     } else {
       this.lastFrameTime = performance.now();
       this.lastRenderTime = this.lastFrameTime;
+      this.resetPerformanceSample(this.lastFrameTime);
       this.running = true;
       this.frameId = requestAnimationFrame(this.tick);
     }
@@ -272,6 +287,8 @@ export class Application {
     window.removeEventListener('scroll', this.updateScroll);
     window.removeEventListener('pointermove', this.handlePointer);
     window.removeEventListener('pointerdown', this.handleImpulse);
+    window.removeEventListener('pointerup', this.handleRelease);
+    window.removeEventListener('pointercancel', this.handleRelease);
     document.removeEventListener('visibilitychange', this.handleVisibility);
     document.documentElement.removeEventListener('pointerleave', this.resetPointer);
     this.canvas.removeEventListener('webglcontextlost', this.handleContextLost);

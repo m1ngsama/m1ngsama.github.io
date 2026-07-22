@@ -7,7 +7,8 @@ export function getQuality(): Quality {
   const cores = navigator.hardwareConcurrency || 4;
   const pixels = window.innerWidth * window.innerHeight;
 
-  if (coarse || window.innerWidth < 720 || cores <= 4) return 'low';
+  if (cores <= 4) return 'low';
+  if (window.innerWidth < 720 || coarse) return cores >= 6 && pixels < 2_200_000 ? 'medium' : 'low';
   if (window.innerWidth < 1240 || cores <= 8 || pixels > 5_500_000) return 'medium';
   return 'high';
 }
@@ -29,7 +30,7 @@ export function createRenderer(canvas: HTMLCanvasElement, quality: Quality): THR
     powerPreference: quality === 'high' ? 'high-performance' : 'default',
   });
 
-  renderer.setClearColor(0x020204, 1);
+  renderer.setClearColor(0x010103, 1);
   renderer.setSize(window.innerWidth, window.innerHeight, false);
   renderer.setPixelRatio(targetPixelRatio(quality));
   renderer.outputColorSpace = THREE.SRGBColorSpace;

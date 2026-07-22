@@ -7,13 +7,13 @@
     <meta name="color-scheme" content="dark" />
     <meta
       name="description"
-      content="A generative WebGL experiment by independent developer m1ngsama."
+      content="One Surface Cosmology, a generative WebGL experiment by m1ngsama."
     />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="m1ngsama — WebGL Experiment" />
+    <meta property="og:title" content="m1ngsama — One Surface Cosmology" />
     <meta
       property="og:description"
-      content="An evolving study in form, light, and interaction."
+      content="A continuous study of one surface becoming a world, an orbit, a galaxy, and an event horizon."
     />
     <meta property="og:url" content="https://m1ngsama.github.io/" />
     <meta property="og:site_name" content="m1ngsama" />
@@ -21,7 +21,7 @@
     <link rel="canonical" href="https://m1ngsama.github.io/" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="manifest" href="/site.webmanifest" />
-    <title>m1ngsama — WebGL Experiment</title>
+    <title>m1ngsama — One Surface Cosmology</title>
     <script>
       document.documentElement.classList.replace('no-js', 'js');
     </script>
@@ -31,9 +31,9 @@
 
     <div class="experience" aria-hidden="true">
       <div class="fallback-art">
-        <i class="fallback-art__a"></i>
-        <i class="fallback-art__b"></i>
-        <i class="fallback-art__core"></i>
+        <i class="fallback-art__orbit"></i>
+        <i class="fallback-art__spiral"></i>
+        <i class="fallback-art__world"></i>
       </div>
       <canvas class="experience__canvas" id="webgl"></canvas>
       <div class="experience__vignette"></div>
@@ -41,8 +41,8 @@
     </div>
 
     <header class="chrome" aria-label="Site controls">
-      <a class="wordmark" href="#phase-1" aria-label="m1ngsama, return to the beginning">
-        m1ng<span aria-hidden="true">.</span>
+      <a class="identity-mark" href="#phase-1" aria-label="m1ngsama, return to the beginning">
+        <i aria-hidden="true"></i>
       </a>
       <button class="motion-toggle" id="motion-toggle" type="button" aria-label="Pause animation" aria-pressed="false" disabled>
         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -63,32 +63,19 @@
       </a>
     </header>
 
-    <main id="main" aria-label="The Fold, a generative WebGL experiment">
-      <h1 class="sr-only">The Fold — a generative WebGL experiment by m1ngsama</h1>
+    <main id="main" aria-label="One Surface Cosmology, a generative WebGL experiment">
+      <h1 class="sr-only">One Surface Cosmology — a generative WebGL experiment by m1ngsama</h1>
       <p class="sr-only">
-        Scroll through five phases as a metallic surface folds into a continuous ring. The animation is decorative;
-        the GitHub link remains available above.
+        Scroll through six phases as a single dark surface becomes spacetime, a world, a continuous orbit, a spiral
+        galaxy, and an event horizon. The animation is decorative; the GitHub link remains available above.
       </p>
-      <section class="phase" id="phase-1" aria-label="Phase one: surface"></section>
-      <section class="phase" id="phase-2" aria-label="Phase two: fold"></section>
-      <section class="phase" id="phase-3" aria-label="Phase three: signal"></section>
-      <section class="phase" id="phase-4" aria-label="Phase four: orbit"></section>
-      <section class="phase" id="phase-5" aria-label="Phase five: horizon"></section>
+      <section class="phase" id="phase-1" aria-label="Phase one: spacetime surface"></section>
+      <section class="phase" id="phase-2" aria-label="Phase two: world"></section>
+      <section class="phase" id="phase-3" aria-label="Phase three: continuous orbit"></section>
+      <section class="phase" id="phase-4" aria-label="Phase four: spiral galaxy"></section>
+      <section class="phase" id="phase-5" aria-label="Phase five: collapse"></section>
+      <section class="phase" id="phase-6" aria-label="Phase six: event horizon"></section>
     </main>
-
-    <nav class="phase-nav" aria-label="Experiment phases">
-      <a href="#phase-1" aria-label="Go to phase 1"><span></span></a>
-      <a href="#phase-2" aria-label="Go to phase 2"><span></span></a>
-      <a href="#phase-3" aria-label="Go to phase 3"><span></span></a>
-      <a href="#phase-4" aria-label="Go to phase 4"><span></span></a>
-      <a href="#phase-5" aria-label="Go to phase 5"><span></span></a>
-    </nav>
-
-    <div class="hud" aria-hidden="true">
-      <span class="hud__index" id="phase-index">01</span>
-      <span class="hud__rule"><i id="scroll-progress"></i></span>
-      <span class="hud__total">05</span>
-    </div>
 
     <div class="scroll-cue" aria-hidden="true">
       <span></span>

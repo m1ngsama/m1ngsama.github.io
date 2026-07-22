@@ -2,18 +2,19 @@
 
 Generative WebGL experiment for [m1ngsama.github.io](https://m1ngsama.github.io/).
 
-## The Fold
+## One Surface Cosmology
 
-The site is a single, reversible scroll film with one subject: a dark procedural surface that folds into a Möbius
-ring, carries a narrow signal through its material, and resolves into an event horizon. Visible copy is intentionally
-limited to the identity, phase index, and GitHub control.
+The site is a text-free, reversible WebGL film. One procedural surface moves through six connected states: spacetime,
+a shadowed world, a continuous orbit, a tidal ribbon, a spiral galaxy, and an event horizon. A lensed starfield,
+surface-born stars, orbital lines, a procedural accretion disk, and a GPU particle galaxy all respond to the same
+timeline, pointer field, scroll velocity, and press-to-charge impulse.
 
 ## Stack
 
 - Vite + TypeScript
-- Three.js with custom parameterized geometry and shaders
-- Adaptive bloom and a lightweight atmospheric post-process
-- Native scroll and pointer input through one render loop
+- Three.js with custom parameterized geometry, procedural worlds, and GPU particle systems
+- Localized gravitational lensing, adaptive bloom, and a compact cosmology post-process
+- Native scroll, pointer parallax, velocity response, and press-to-charge interaction through one render loop
 - GitHub Pages from `main / root`
 
 ## Structure
@@ -26,7 +27,14 @@ src/index.html
     ├── engine/renderer.ts
     ├── engine/camera.ts
     ├── scenes/hero/HeroScene.ts
-    │   ├── Fold.ts
+    │   ├── sequence.ts
+    │   ├── CosmicSurface.ts
+    │   ├── Galaxy.ts
+    │   ├── Starfield.ts
+    │   ├── ParticleCosmos.ts
+    │   ├── WorldCore.ts
+    │   ├── OrbitalSystem.ts
+    │   ├── AccretionDisk.ts
     │   └── Backdrop.ts
     └── postprocessing/Composer.ts
 ```

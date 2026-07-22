@@ -4,285 +4,91 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="m1ngsama — Full-stack Developer, AI Agent Builder and Open Source Creator">
-  <meta name="theme-color" content="#08090b">
+  <meta name="theme-color" content="#050609">
   <title>m1ngsama</title>
   <style>
-    :root {
-      color-scheme: dark;
-      --bg: #08090b;
-      --panel: rgba(19, 21, 25, .7);
-      --text: #f4f4f5;
-      --muted: #9699a2;
-      --line: rgba(255,255,255,.09);
-      --accent: #9bbcff;
-      --mx: 50%;
-      --my: 42%;
-    }
-
-    * { box-sizing: border-box; }
-
-    html { background: var(--bg); }
-
-    body {
-      min-height: 100svh;
-      margin: 0;
-      overflow: hidden;
-      display: grid;
-      place-items: center;
-      color: var(--text);
-      background:
-        radial-gradient(circle at var(--mx) var(--my), rgba(94, 126, 191, .13), transparent 28rem),
-        radial-gradient(circle at 78% 16%, rgba(140, 110, 170, .08), transparent 22rem),
-        var(--bg);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      opacity: .22;
-      background-image:
-        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
-      background-size: 48px 48px;
-      mask-image: radial-gradient(circle at center, black, transparent 72%);
-    }
-
-    .scene {
-      width: min(720px, calc(100% - 32px));
-      perspective: 1100px;
-      animation: arrive 900ms cubic-bezier(.2,.8,.2,1) both;
-    }
-
-    .card {
-      position: relative;
-      isolation: isolate;
-      overflow: hidden;
-      min-height: 360px;
-      padding: clamp(32px, 7vw, 64px);
-      border: 1px solid var(--line);
-      border-radius: 32px;
-      background:
-        linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.012)),
-        var(--panel);
-      box-shadow:
-        0 34px 100px rgba(0,0,0,.45),
-        inset 0 1px 0 rgba(255,255,255,.06);
-      backdrop-filter: blur(20px) saturate(120%);
-      transform-style: preserve-3d;
-      transition: transform 180ms ease-out, border-color 300ms ease;
-    }
-
-    .card::before {
-      content: "";
-      position: absolute;
-      inset: -2px;
-      z-index: -1;
-      opacity: .8;
-      background: radial-gradient(420px circle at var(--mx) var(--my), rgba(154,188,255,.13), transparent 46%);
-    }
-
-    .orb {
-      position: absolute;
-      width: 240px;
-      aspect-ratio: 1;
-      right: -74px;
-      top: -86px;
-      border-radius: 50%;
-      background:
-        radial-gradient(circle at 34% 28%, rgba(255,255,255,.35), transparent 8%),
-        radial-gradient(circle at 40% 38%, rgba(145,175,235,.28), rgba(59,72,102,.11) 42%, rgba(0,0,0,.02) 70%);
-      border: 1px solid rgba(255,255,255,.12);
-      box-shadow:
-        inset -24px -28px 60px rgba(0,0,0,.28),
-        inset 10px 12px 28px rgba(255,255,255,.06),
-        0 30px 80px rgba(50,70,120,.18);
-      transform: translateZ(70px);
-      animation: float 7s ease-in-out infinite;
-    }
-
-    .ring {
-      position: absolute;
-      width: 330px;
-      height: 110px;
-      right: -118px;
-      top: 52px;
-      border: 1px solid rgba(180,201,244,.16);
-      border-radius: 50%;
-      transform: translateZ(34px) rotate(-16deg);
-      animation: drift 10s ease-in-out infinite alternate;
-    }
-
-    .eyebrow,
-    h1,
-    .subtitle,
-    .actions {
-      position: relative;
-      transform: translateZ(54px);
-    }
-
-    .eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 9px;
-      margin-bottom: 24px;
-      color: #b9bbc2;
-      font-size: 13px;
-      letter-spacing: .15em;
-      text-transform: uppercase;
-    }
-
-    .dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #8db1ff;
-      box-shadow: 0 0 18px rgba(141,177,255,.7);
-      animation: breathe 2.8s ease-in-out infinite;
-    }
-
-    h1 {
-      max-width: 540px;
-      margin: 0;
-      font-size: clamp(54px, 11vw, 96px);
-      line-height: .92;
-      letter-spacing: -.075em;
-      font-weight: 650;
-    }
-
-    .subtitle {
-      max-width: 520px;
-      margin: 24px 0 0;
-      color: var(--muted);
-      font-size: clamp(16px, 2.4vw, 20px);
-      line-height: 1.65;
-    }
-
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 34px;
-    }
-
-    .button {
-      display: inline-flex;
-      align-items: center;
-      gap: 9px;
-      min-height: 46px;
-      padding: 0 18px;
-      border: 1px solid rgba(255,255,255,.12);
-      border-radius: 999px;
-      color: #eef2ff;
-      background: rgba(255,255,255,.055);
-      text-decoration: none;
-      font-size: 14px;
-      transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
-    }
-
-    .button:hover {
-      transform: translateY(-2px);
-      background: rgba(255,255,255,.09);
-      border-color: rgba(255,255,255,.21);
-    }
-
-    .button svg { width: 17px; height: 17px; }
-
-    .hint {
-      position: fixed;
-      bottom: 22px;
-      color: rgba(255,255,255,.3);
-      font-size: 12px;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      animation: fade 1.2s 1s both;
-    }
-
-    @keyframes arrive {
-      from { opacity: 0; transform: translateY(18px) scale(.985); }
-      to { opacity: 1; transform: none; }
-    }
-
-    @keyframes float {
-      0%,100% { transform: translateZ(70px) translateY(0) rotate(0deg); }
-      50% { transform: translateZ(70px) translateY(13px) rotate(2deg); }
-    }
-
-    @keyframes drift {
-      from { transform: translateZ(34px) rotate(-16deg) translateX(0); }
-      to { transform: translateZ(34px) rotate(-12deg) translateX(-18px); }
-    }
-
-    @keyframes breathe {
-      0%,100% { opacity: .65; transform: scale(.85); }
-      50% { opacity: 1; transform: scale(1.1); }
-    }
-
-    @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
-
-    @media (max-width: 640px) {
-      .card { min-height: 430px; border-radius: 26px; }
-      .orb { width: 190px; right: -78px; top: -58px; opacity: .8; }
-      .ring { width: 250px; right: -110px; top: 42px; }
-      .hint { display: none; }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        animation-duration: .01ms !important;
-        animation-iteration-count: 1 !important;
-        scroll-behavior: auto !important;
-      }
-      .card { transform: none !important; }
-    }
+    :root{color-scheme:dark;--bg:#050609;--text:#f7f8fb;--muted:#989ca8;--line:rgba(255,255,255,.1);--accent:#9bbcff}
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg)}
+    body{min-height:100svh;overflow:hidden;color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+    #webgl{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0}
+    .veil{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(circle at 50% 42%,transparent 0,rgba(5,6,9,.1) 44%,rgba(5,6,9,.72) 100%)}
+    .noise{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:.05;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E")}
+    .shell{position:relative;z-index:3;min-height:100svh;display:grid;place-items:center;padding:24px}
+    .panel{position:relative;width:min(860px,100%);padding:clamp(30px,7vw,72px);border:1px solid var(--line);border-radius:36px;background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.018));box-shadow:0 40px 130px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.08);backdrop-filter:blur(22px) saturate(125%);transform-style:preserve-3d;overflow:hidden}
+    .panel:before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(120deg,transparent 20%,rgba(255,255,255,.07) 49%,transparent 75%);transform:translateX(-120%)}
+    .status{display:inline-flex;align-items:center;gap:10px;margin-bottom:26px;color:#c2c5cd;font-size:12px;letter-spacing:.16em;text-transform:uppercase}.dot{width:7px;height:7px;border-radius:50%;background:#a6c0ff;box-shadow:0 0 20px rgba(166,192,255,.8)}
+    h1{margin:0;max-width:650px;font-size:clamp(58px,11vw,118px);line-height:.86;letter-spacing:-.082em;font-weight:650;text-shadow:0 8px 40px rgba(0,0,0,.24)}
+    .sub{max-width:620px;margin:28px 0 0;color:var(--muted);font-size:clamp(16px,2.1vw,21px);line-height:1.68}
+    .actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:36px}.btn{display:inline-flex;align-items:center;gap:9px;min-height:48px;padding:0 19px;border:1px solid rgba(255,255,255,.13);border-radius:999px;color:#f2f5ff;background:rgba(255,255,255,.055);text-decoration:none;font-size:14px;transition:background .2s,border-color .2s,transform .2s}.btn:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.24);transform:translateY(-2px)}.btn svg{width:17px;height:17px}
+    .meta{position:fixed;z-index:4;left:22px;bottom:18px;color:rgba(255,255,255,.34);font-size:11px;letter-spacing:.13em;text-transform:uppercase}.quality{position:fixed;z-index:4;right:18px;bottom:14px;border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:8px 11px;color:rgba(255,255,255,.42);background:rgba(10,11,15,.38);font-size:10px;letter-spacing:.12em;text-transform:uppercase;backdrop-filter:blur(12px)}
+    .fallback{display:none;position:fixed;inset:0;z-index:0;background:radial-gradient(circle at 65% 30%,rgba(89,116,176,.25),transparent 35%),radial-gradient(circle at 25% 70%,rgba(116,78,150,.16),transparent 32%),#050609}
+    @media(max-width:640px){.shell{padding:16px}.panel{padding:34px 26px;border-radius:28px}.meta,.quality{display:none}h1{font-size:clamp(52px,18vw,82px)}}
+    @media(prefers-reduced-motion:reduce){#webgl{opacity:.55}.panel{transform:none!important}.panel:before{display:none}.quality{display:none}}
   </style>
 </head>
 <body>
-  <main class="scene" aria-label="m1ngsama 个人主页">
-    <section class="card" id="card">
-      <div class="orb" aria-hidden="true"></div>
-      <div class="ring" aria-hidden="true"></div>
-
-      <div class="eyebrow"><span class="dot"></span> Independent developer</div>
+  <div class="fallback" id="fallback"></div>
+  <canvas id="webgl" aria-hidden="true"></canvas>
+  <div class="veil"></div><div class="noise"></div>
+  <main class="shell">
+    <section class="panel" id="panel" aria-label="m1ngsama 个人主页">
+      <div class="status"><span class="dot"></span>Independent developer</div>
       <h1>m1ngsama</h1>
-      <p class="subtitle">Full-stack Developer · AI Agent Builder · Open Source Creator. Building useful things with code, systems and taste.</p>
-
+      <p class="sub">Full-stack Developer · AI Agent Builder · Open Source Creator. Building useful things with code, systems and taste.</p>
       <nav class="actions" aria-label="个人链接">
-        <a class="button" href="https://github.com/m1ngsama" target="_blank" rel="noreferrer">
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2.23c-3.22.7-3.9-1.37-3.9-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.78 1.2 1.78 1.2 1.04 1.77 2.72 1.26 3.38.96.1-.75.4-1.26.74-1.55-2.57-.29-5.27-1.28-5.27-5.69 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.16 1.18a10.9 10.9 0 0 1 5.75 0c2.19-1.49 3.16-1.18 3.16-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.42-2.71 5.39-5.29 5.68.42.36.79 1.07.79 2.16v3.2c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .7Z"/></svg>
-          GitHub
-        </a>
-        <a class="button" href="mailto:hello@m1ngsama.dev">Say hello ↗</a>
+        <a class="btn" href="https://github.com/m1ngsama" target="_blank" rel="noreferrer"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2.23c-3.22.7-3.9-1.37-3.9-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.78 1.2 1.78 1.2 1.04 1.77 2.72 1.26 3.38.96.1-.75.4-1.26.74-1.55-2.57-.29-5.27-1.28-5.27-5.69 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.16 1.18a10.9 10.9 0 0 1 5.75 0c2.19-1.49 3.16-1.18 3.16-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.42-2.71 5.39-5.29 5.68.42.36.79 1.07.79 2.16v3.2c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .7Z"/></svg>GitHub</a>
+        <a class="btn" href="mailto:hello@m1ngsama.dev">Say hello ↗</a>
       </nav>
     </section>
   </main>
+  <div class="meta">interactive webgl field</div><div class="quality" id="quality">WebGL · adaptive</div>
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.169.0/+esm';
+    import { gsap } from 'https://cdn.jsdelivr.net/npm/gsap@3.12.5/+esm';
 
-  <div class="hint">move gently</div>
+    const canvas=document.getElementById('webgl'),panel=document.getElementById('panel'),fallback=document.getElementById('fallback'),quality=document.getElementById('quality');
+    const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const coarse=matchMedia('(pointer: coarse)').matches;
+    let renderer;
+    try{renderer=new THREE.WebGLRenderer({canvas,antialias:!coarse,alpha:true,powerPreference:'high-performance'});}catch(e){fallback.style.display='block';canvas.style.display='none';throw e;}
+    renderer.setPixelRatio(Math.min(devicePixelRatio,coarse?1.35:1.8));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
+    const scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x050609,.055);
+    const camera=new THREE.PerspectiveCamera(48,innerWidth/innerHeight,.1,100);camera.position.set(0,0,8.4);
+    const world=new THREE.Group();scene.add(world);
 
-  <script>
-    const card = document.getElementById('card');
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const finePointer = window.matchMedia('(pointer: fine)').matches;
+    const ambient=new THREE.HemisphereLight(0xb9c9ff,0x090a10,1.7);scene.add(ambient);
+    const key=new THREE.PointLight(0x9bbcff,34,18,1.7);key.position.set(4,3,5);scene.add(key);
+    const rim=new THREE.PointLight(0xc39cff,22,16,2);rim.position.set(-4,-2,3);scene.add(rim);
 
-    if (!reduceMotion && finePointer) {
-      window.addEventListener('pointermove', (event) => {
-        const x = event.clientX / innerWidth;
-        const y = event.clientY / innerHeight;
-        const rotateY = (x - .5) * 7;
-        const rotateX = (.5 - y) * 6;
+    const coreGeo=new THREE.IcosahedronGeometry(1.22,6);
+    const coreMat=new THREE.MeshPhysicalMaterial({color:0x263147,metalness:.18,roughness:.18,transmission:.58,thickness:1.4,ior:1.35,clearcoat:1,clearcoatRoughness:.18,iridescence:.45,iridescenceIOR:1.2,transparent:true,opacity:.92});
+    const core=new THREE.Mesh(coreGeo,coreMat);core.position.set(2.45,.55,-.2);world.add(core);
+    const wire=new THREE.Mesh(coreGeo,new THREE.MeshBasicMaterial({color:0xaec5ff,wireframe:true,transparent:true,opacity:.1}));wire.scale.setScalar(1.025);core.add(wire);
 
-        document.documentElement.style.setProperty('--mx', `${x * 100}%`);
-        document.documentElement.style.setProperty('--my', `${y * 100}%`);
-        card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-      }, { passive: true });
+    const knot=new THREE.Mesh(new THREE.TorusKnotGeometry(1.8,.018,360,12,2,3),new THREE.MeshBasicMaterial({color:0x89a9ee,transparent:true,opacity:.27}));knot.position.copy(core.position);knot.rotation.set(.4,.2,.6);world.add(knot);
+    const ring2=new THREE.Mesh(new THREE.TorusGeometry(2.35,.012,8,260),new THREE.MeshBasicMaterial({color:0xc0a7ff,transparent:true,opacity:.18}));ring2.position.copy(core.position);ring2.rotation.set(1.1,.35,.2);world.add(ring2);
 
-      document.documentElement.addEventListener('mouseleave', () => {
-        card.style.transform = 'rotateX(0deg) rotateY(0deg)';
-      });
-    }
+    const count=coarse?900:1900,positions=new Float32Array(count*3),sizes=new Float32Array(count);
+    for(let i=0;i<count;i++){const r=4+Math.random()*12,theta=Math.random()*Math.PI*2,phi=Math.acos(2*Math.random()-1);positions[i*3]=Math.sin(phi)*Math.cos(theta)*r;positions[i*3+1]=Math.cos(phi)*r*.65;positions[i*3+2]=Math.sin(phi)*Math.sin(theta)*r;sizes[i]=Math.random();}
+    const pGeo=new THREE.BufferGeometry();pGeo.setAttribute('position',new THREE.BufferAttribute(positions,3));pGeo.setAttribute('aSize',new THREE.BufferAttribute(sizes,1));
+    const pMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{uTime:{value:0},uPixel:{value:renderer.getPixelRatio()}},vertexShader:`uniform float uTime;uniform float uPixel;attribute float aSize;varying float vFade;void main(){vec3 p=position;p.x+=sin(uTime*.12+p.y*.5)*.18;p.y+=cos(uTime*.15+p.x*.35)*.12;vec4 mv=modelViewMatrix*vec4(p,1.);gl_PointSize=(1.2+aSize*2.8)*uPixel*(8./-mv.z);gl_Position=projectionMatrix*mv;vFade=.35+aSize*.65;}`,fragmentShader:`varying float vFade;void main(){float d=distance(gl_PointCoord,vec2(.5));float a=smoothstep(.5,.05,d)*vFade;gl_FragColor=vec4(.58,.7,1.,a);}`});
+    const particles=new THREE.Points(pGeo,pMat);world.add(particles);
+
+    const plane=new THREE.Mesh(new THREE.PlaneGeometry(28,20,1,1),new THREE.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{uTime:{value:0},uMouse:{value:new THREE.Vector2(.5,.5)},uRes:{value:new THREE.Vector2(innerWidth,innerHeight)}},vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,fragmentShader:`precision highp float;varying vec2 vUv;uniform float uTime;uniform vec2 uMouse;float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}void main(){vec2 uv=vUv;float n=noise(uv*4.+uTime*.025)+.5*noise(uv*9.-uTime*.018);float glow=.18/(length(uv-uMouse)*7.+.35);vec3 c=mix(vec3(.02,.025,.045),vec3(.12,.16,.3),n*.34)+vec3(.18,.12,.28)*glow*.24;gl_FragColor=vec4(c,.75);}`));plane.position.z=-6;scene.add(plane);
+
+    const mouse={x:0,y:0,tx:0,ty:0};
+    addEventListener('pointermove',e=>{mouse.tx=e.clientX/innerWidth-.5;mouse.ty=e.clientY/innerHeight-.5;plane.material.uniforms.uMouse.value.set(e.clientX/innerWidth,1-e.clientY/innerHeight);},{passive:true});
+    addEventListener('deviceorientation',e=>{if(e.gamma==null)return;mouse.tx=THREE.MathUtils.clamp(e.gamma/45,-.5,.5);mouse.ty=THREE.MathUtils.clamp((e.beta-45)/70,-.5,.5);},{passive:true});
+
+    gsap.from(panel,{opacity:0,y:28,scale:.975,duration:1.25,ease:'power3.out'});gsap.from('.status,h1,.sub,.actions',{opacity:0,y:20,stagger:.11,duration:.9,delay:.25,ease:'power3.out'});gsap.to('.panel:before',{duration:1});
+    gsap.to(core.position,{y:core.position.y+.22,duration:3.8,yoyo:true,repeat:-1,ease:'sine.inOut'});
+    gsap.to(key,{intensity:46,duration:4,yoyo:true,repeat:-1,ease:'sine.inOut'});
+
+    const clock=new THREE.Clock();
+    function tick(){const t=clock.getElapsedTime();mouse.x+=(mouse.tx-mouse.x)*.035;mouse.y+=(mouse.ty-mouse.y)*.035;if(!reduce){camera.position.x=mouse.x*.75;camera.position.y=-mouse.y*.55;camera.lookAt(mouse.x*.15,-mouse.y*.1,0);world.rotation.y=t*.035+mouse.x*.12;world.rotation.x=Math.sin(t*.14)*.025+mouse.y*.05;core.rotation.y=t*.16;core.rotation.x=t*.09;knot.rotation.z=t*.08;knot.rotation.x=.4+Math.sin(t*.22)*.15;ring2.rotation.z=-t*.05;particles.rotation.y=-t*.012;pMat.uniforms.uTime.value=t;plane.material.uniforms.uTime.value=t;panel.style.transform=`perspective(1100px) rotateX(${(-mouse.y*3.2).toFixed(2)}deg) rotateY(${(mouse.x*4).toFixed(2)}deg)`;}renderer.render(scene,camera);requestAnimationFrame(tick)}tick();
+
+    function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,coarse?1.35:1.8));plane.material.uniforms.uRes.value.set(innerWidth,innerHeight)}addEventListener('resize',resize,{passive:true});
+    let frames=0,last=performance.now();function perf(){frames++;const now=performance.now();if(now-last>1800){const fps=Math.round(frames*1000/(now-last));quality.textContent=`WebGL · ${fps} fps`;if(fps<38&&renderer.getPixelRatio()>1){renderer.setPixelRatio(1);quality.textContent='WebGL · adaptive low';}frames=0;last=now}requestAnimationFrame(perf)}perf();
   </script>
 </body>
 </html>

@@ -1,18 +1,39 @@
-import { Application } from './engine/Application';
-import { HeroScene } from './scenes/hero/HeroScene';
-import Lenis from 'lenis';
+import './styles/global.css';
+import { initMotion } from './ui/motion';
 
-const lenis = new Lenis({ smoothWheel: true });
-function scrollFrame(time: number) {
-  lenis.raf(time);
-  requestAnimationFrame(scrollFrame);
+const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+let app: import('./engine/Application').Application | undefined;
+let destroyMotion = initMotion(motionQuery.matches);
+
+async function loadExperience() {
+  const canvas = document.querySelector<HTMLCanvasElement>('#webgl');
+  if (!canvas) return;
+
+  try {
+    const { Application } = await import('./engine/Application');
+    app = new Application(canvas, { reducedMotion: motionQuery.matches });
+    app.start();
+    document.documentElement.classList.add('webgl-ready');
+  } catch (error) {
+    document.documentElement.classList.add('webgl-fallback');
+    console.warn('The WebGL experience could not be started.', error);
+  }
 }
-requestAnimationFrame(scrollFrame);
 
-const app = new Application({
-  container: document.body,
+requestAnimationFrame(() => window.setTimeout(loadExperience, 40));
+
+motionQuery.addEventListener('change', () => {
+  app?.destroy();
+  destroyMotion();
+  destroyMotion = initMotion(motionQuery.matches);
+  void loadExperience();
 });
 
-const hero = new HeroScene();
-app.add(hero);
-app.start();
+window.addEventListener(
+  'pagehide',
+  () => {
+    app?.destroy();
+    destroyMotion();
+  },
+  { once: true },
+);

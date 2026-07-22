@@ -1,9 +1,15 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: './',
+  root: 'src',
+  base: '/',
+  publicDir: '../public',
   build: {
-    outDir: 'dist',
+    target: 'es2022',
+    outDir: '../dist',
+    emptyOutDir: true,
+    cssCodeSplit: true,
     sourcemap: false,
+    reportCompressedSize: true,
   },
-})
+});

@@ -1,0 +1,9 @@
+{
+  "name": "m1ngsama",
+  "short_name": "m1ng",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "icons": []
+}

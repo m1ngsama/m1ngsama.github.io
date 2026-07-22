@@ -11,5 +11,6 @@ export default defineConfig({
     cssCodeSplit: true,
     sourcemap: false,
     reportCompressedSize: true,
+    chunkSizeWarningLimit: 600,
   },
 });

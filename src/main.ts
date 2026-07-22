@@ -5,9 +5,26 @@ const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 let app: import('./engine/Application').Application | undefined;
 let destroyMotion = initMotion(motionQuery.matches);
 
+function supportsWebGL2(): boolean {
+  try {
+    const probe = document.createElement('canvas');
+    const context = probe.getContext('webgl2', { powerPreference: 'low-power' });
+    if (!context) return false;
+    context.getExtension('WEBGL_lose_context')?.loseContext();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function loadExperience() {
   const canvas = document.querySelector<HTMLCanvasElement>('#webgl');
   if (!canvas) return;
+
+  if (!supportsWebGL2()) {
+    document.documentElement.classList.add('webgl-fallback');
+    return;
+  }
 
   try {
     const { Application } = await import('./engine/Application');

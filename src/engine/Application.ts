@@ -12,7 +12,6 @@ export class Application {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly camera = createCamera();
   private readonly scene = new THREE.Scene();
-  private readonly clock = new THREE.Clock(false);
   private readonly pointer = new THREE.Vector2();
   private readonly pointerTarget = new THREE.Vector2();
   private readonly lookTarget = new THREE.Vector3();
@@ -28,6 +27,8 @@ export class Application {
   private lastLowQualityFrame = 0;
   private fpsStartedAt = performance.now();
   private fpsFrames = 0;
+  private elapsed = 0;
+  private lastFrameTime = 0;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -55,7 +56,7 @@ export class Application {
 
     if (!this.options.reducedMotion) {
       this.running = true;
-      this.clock.start();
+      this.lastFrameTime = performance.now();
       this.frameId = requestAnimationFrame(this.tick);
     }
   }
@@ -89,7 +90,7 @@ export class Application {
     if (document.hidden) {
       this.stopLoop();
     } else if (!this.options.reducedMotion && !this.destroyed) {
-      this.clock.start();
+      this.lastFrameTime = performance.now();
       this.running = true;
       this.frameId = requestAnimationFrame(this.tick);
     }
@@ -109,8 +110,9 @@ export class Application {
     if (this.quality === 'low' && now - this.lastLowQualityFrame < 1000 / 30) return;
     this.lastLowQualityFrame = now;
 
-    const delta = Math.min(this.clock.getDelta(), 0.05);
-    const elapsed = this.clock.elapsedTime;
+    const delta = Math.min(Math.max((now - this.lastFrameTime) / 1000, 0), 0.05);
+    this.lastFrameTime = now;
+    this.elapsed += delta;
     const damping = 1 - Math.exp(-delta * 3.6);
     this.pointer.lerp(this.pointerTarget, damping);
     this.scrollCurrent = THREE.MathUtils.lerp(this.scrollCurrent, this.scrollTarget, damping * 0.72);
@@ -121,7 +123,7 @@ export class Application {
     this.lookTarget.set(this.pointer.x * 0.08, -this.pointer.y * 0.05, 0);
     this.camera.lookAt(this.lookTarget);
 
-    this.hero.update(elapsed, delta, this.pointer, this.scrollCurrent, window.innerWidth < 760);
+    this.hero.update(this.elapsed, delta, this.pointer, this.scrollCurrent, window.innerWidth < 760);
     this.composer.render(delta);
     this.checkPerformance(now);
   };
@@ -161,7 +163,6 @@ export class Application {
   private stopLoop(): void {
     this.running = false;
     cancelAnimationFrame(this.frameId);
-    this.clock.stop();
   }
 
   destroy(): void {

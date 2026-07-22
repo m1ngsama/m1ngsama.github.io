@@ -37,7 +37,7 @@ const fragmentShader = /* glsl */ `
   float fbm(vec2 p) {
     float value = 0.0;
     float amplitude = 0.5;
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 4; i++) {
       value += noise2(p) * amplitude;
       p = p * 2.03 + vec2(7.1, 3.7);
       amplitude *= 0.5;

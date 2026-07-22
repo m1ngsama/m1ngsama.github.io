@@ -13,7 +13,7 @@ function seededRandom(seed: number): () => number {
 }
 
 function createGeometry(quality: Quality): THREE.BufferGeometry {
-  const count = quality === 'high' ? 5600 : quality === 'medium' ? 3600 : 1800;
+  const count = quality === 'high' ? 4200 : quality === 'medium' ? 2400 : 900;
   const positions = new Float32Array(count * 3);
   const data = new Float32Array(count * 4);
   const seeds = new Float32Array(count * 2);
@@ -246,6 +246,10 @@ export class Starfield extends THREE.Points<THREE.BufferGeometry, THREE.ShaderMa
     this.material.uniforms.uHorizon!.value = frame.horizon;
     this.material.uniforms.uEnergy!.value = energy;
     (this.material.uniforms.uPointer!.value as THREE.Vector2).copy(pointer);
+  }
+
+  setPixelRatio(value: number): void {
+    this.material.uniforms.uPixelRatio!.value = value;
   }
 
   dispose(): void {

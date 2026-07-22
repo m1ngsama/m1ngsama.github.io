@@ -3,9 +3,9 @@ import type { Quality } from '../../engine/renderer';
 import type { SequenceFrame } from './sequence';
 
 const PARTICLE_COUNTS: Record<Quality, number> = {
-  high: 86_000,
-  medium: 52_000,
-  low: 24_000,
+  high: 72_000,
+  medium: 32_000,
+  low: 14_000,
 };
 
 function seededRandom(seed: number): () => number {
@@ -231,6 +231,10 @@ export class Galaxy extends THREE.Points<THREE.BufferGeometry, THREE.ShaderMater
     this.material.uniforms.uEnergy!.value = energy;
     (this.material.uniforms.uPointer!.value as THREE.Vector2).copy(pointer);
     this.visible = Math.max(frame.galaxy, frame.horizon) > 0.002;
+  }
+
+  setPixelRatio(value: number): void {
+    this.material.uniforms.uPixelRatio!.value = value;
   }
 
   dispose(): void {

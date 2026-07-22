@@ -4,17 +4,19 @@ Generative WebGL experiment for [m1ngsama.github.io](https://m1ngsama.github.io/
 
 ## One Surface Cosmology
 
-The site is a text-free, reversible WebGL film. One procedural surface moves through six connected states: spacetime,
-a shadowed world, a continuous orbit, a tidal ribbon, a spiral galaxy, and an event horizon. A lensed starfield,
-surface-born stars, orbital lines, a procedural accretion disk, and a GPU particle galaxy all respond to the same
-timeline, pointer field, scroll velocity, and press-to-charge impulse.
+A nearly textless, reversible WebGL film. One parameterized surface moves through six connected states: spacetime,
+a shadowed world, a twisted orbit, a tidal ribbon, a spiral galaxy, and an event horizon. Surface-born stars, a
+lensed deep field, a procedural particle galaxy, and a narrow accretion memory all share the same scroll timeline,
+pointer field, velocity response, and press impulse.
+
+The visual system is procedural: there are no image textures, stock space assets, or remote runtime dependencies.
 
 ## Stack
 
-- Vite + TypeScript
-- Three.js with custom parameterized geometry, procedural worlds, and GPU particle systems
-- Localized gravitational lensing, adaptive bloom, and a compact cosmology post-process
-- Native scroll, pointer parallax, velocity response, and press-to-charge interaction through one render loop
+- Vite + TypeScript + Three.js
+- Custom GLSL geometry morphing, materials, particles, bloom, lensing, chromatic aberration, and film grain
+- Adaptive pixel ratio and quality-specific geometry/particle budgets
+- WebGL2 capability check, context recovery, background-tab pause, reduced-motion still frame, and CSS fallback
 - GitHub Pages from `main / root`
 
 ## Structure
@@ -29,19 +31,14 @@ src/index.html
     ├── scenes/hero/HeroScene.ts
     │   ├── sequence.ts
     │   ├── CosmicSurface.ts
-    │   ├── Galaxy.ts
-    │   ├── Starfield.ts
     │   ├── ParticleCosmos.ts
     │   ├── WorldCore.ts
-    │   ├── OrbitalSystem.ts
+    │   ├── Galaxy.ts
+    │   ├── Starfield.ts
     │   ├── AccretionDisk.ts
     │   └── Backdrop.ts
     └── postprocessing/Composer.ts
 ```
-
-The Three.js bundle is dynamically imported after the static poster and interface are available. WebGL2 is checked
-before import; reduced motion renders a single composed frame; context loss, background tabs, BFCache restores,
-coarse pointers, high pixel density, and low frame rates all have explicit handling.
 
 ## Development
 
@@ -54,5 +51,5 @@ npm run sync:pages
 npm run verify:pages
 ```
 
-`npm run sync:pages` creates the production build and copies it to the repository root because this user-site
-repository is published by GitHub Pages from `main / root`. The validation workflow rejects stale root artifacts.
+`npm run sync:pages` builds the site and mirrors `dist/` to the repository root. The Pages validation workflow rejects
+stale publishing artifacts.

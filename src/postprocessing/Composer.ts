@@ -143,6 +143,10 @@ export class Composer {
     this.composer?.setSize(width, height);
   }
 
+  getRenderScale(): number {
+    return this.composer ? this.renderScale : 1;
+  }
+
   dispose(): void {
     this.renderPass?.dispose();
     this.bloom?.dispose();

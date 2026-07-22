@@ -1,10 +1,10 @@
 {
   "name": "m1ngsama",
   "short_name": "m1ng",
-  "description": "A generative WebGL experiment in form, light, and interaction.",
+  "description": "One Surface Cosmology, a generative WebGL experiment by m1ngsama.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#020204",
-  "theme_color": "#020204",
+  "background_color": "#010103",
+  "theme_color": "#010103",
   "icons": []
 }

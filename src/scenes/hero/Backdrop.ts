@@ -45,7 +45,7 @@ export class Backdrop extends THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMateri
         float fbm(vec2 p) {
           float value = 0.0;
           float amplitude = 0.5;
-          for (int i = 0; i < 5; i++) {
+          for (int i = 0; i < 4; i++) {
             value += noise2(p) * amplitude;
             p = p * 2.04 + vec2(7.3, 3.1);
             amplitude *= 0.5;

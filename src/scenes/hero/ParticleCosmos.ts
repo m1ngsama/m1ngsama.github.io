@@ -10,7 +10,7 @@ function seededRandom(seed: number): () => number {
 }
 
 function createGeometry(quality: Quality): THREE.BufferGeometry {
-  const count = quality === 'high' ? 3600 : quality === 'medium' ? 1700 : 420;
+  const count = quality === 'high' ? 2800 : quality === 'medium' ? 1200 : 240;
   const positions = new Float32Array(count * 3);
   const parameters = new Float32Array(count * 2);
   const seeds = new Float32Array(count * 3);
@@ -164,7 +164,7 @@ export class ParticleCosmos extends THREE.Points<THREE.BufferGeometry, THREE.Sha
       fragmentShader,
       transparent: true,
       depthWrite: false,
-      depthTest: false,
+      depthTest: true,
       blending: THREE.AdditiveBlending,
       toneMapped: true,
     });
@@ -180,6 +180,10 @@ export class ParticleCosmos extends THREE.Points<THREE.BufferGeometry, THREE.Sha
     this.material.uniforms.uProgress!.value = progress;
     this.material.uniforms.uPulse!.value = pulse;
     (this.material.uniforms.uPointer!.value as THREE.Vector2).copy(pointer);
+  }
+
+  setPixelRatio(value: number): void {
+    this.material.uniforms.uPixelRatio!.value = value;
   }
 
   dispose(): void {

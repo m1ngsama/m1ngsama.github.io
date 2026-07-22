@@ -136,7 +136,7 @@ export class Application {
     document.documentElement.classList.add('webgl-ready');
     this.resize();
     this.renderStaticFrame();
-    if (!this.options.reducedMotion && !this.paused) {
+    if (!this.options.reducedMotion && !this.paused && !document.hidden) {
       this.lastFrameTime = performance.now();
       this.lastRenderTime = this.lastFrameTime;
       this.resetPerformanceSample(this.lastFrameTime);
@@ -174,24 +174,25 @@ export class Application {
       this.pulse *= Math.exp(-delta * 2.15);
     }
 
-    this.updateCamera(delta);
+    this.checkPerformance(now);
+    const progress = this.visualProgress(this.scrollCurrent);
+    this.updateCamera(delta, progress);
     this.hero.update(
       this.elapsed,
       delta,
       this.pointer,
-      this.scrollCurrent,
+      progress,
       this.isMobile(),
       this.pulse,
       this.scrollVelocity,
     );
-    this.composer.update(this.elapsed, this.pulse, this.scrollCurrent, this.pointer, this.scrollVelocity);
+    this.composer.update(this.elapsed, this.pulse, progress, this.pointer, this.scrollVelocity);
     this.composer.render(delta);
-    this.checkPerformance(now);
   };
 
-  private updateCamera(delta: number): void {
+  private updateCamera(delta: number, progress = this.visualProgress(this.scrollCurrent)): void {
     const mobile = this.isMobile();
-    const frame = sampleSequence(this.scrollCurrent, mobile);
+    const frame = sampleSequence(progress, mobile);
     const pointerRange = mobile ? 0.035 : 0.13;
     this.cameraTarget.copy(frame.position);
     this.cameraTarget.x += this.pointer.x * pointerRange;
@@ -230,16 +231,22 @@ export class Application {
   }
 
   private renderStaticFrame(): void {
-    const progress = this.options.reducedMotion ? 0.47 : this.scrollTarget;
-    this.scrollCurrent = progress;
-    this.updateCamera(0);
+    const scrollProgress = this.options.reducedMotion ? 0.47 : this.scrollTarget;
+    const progress = this.options.reducedMotion ? scrollProgress : this.visualProgress(scrollProgress);
+    this.scrollCurrent = scrollProgress;
+    this.updateCamera(0, progress);
     this.hero.update(0.8, 0, this.pointer, progress, this.isMobile(), 0, 0);
     this.composer.update(0.8, 0, progress, this.pointer, 0);
     this.composer.render(0);
   }
 
   private isMobile(): boolean {
-    return window.innerWidth < 760 || window.matchMedia('(pointer: coarse)').matches;
+    const portraitLike = window.innerHeight >= window.innerWidth * 0.72;
+    return window.innerWidth < 760 && portraitLike;
+  }
+
+  private visualProgress(value: number): number {
+    return 0.04 + THREE.MathUtils.clamp(value, 0, 1) * 0.96;
   }
 
   private applyPixelRatio(): void {
@@ -247,6 +254,7 @@ export class Application {
     this.renderer.setPixelRatio(ratio);
     this.composer.setPixelRatio(ratio);
     this.composer.setSize(window.innerWidth, window.innerHeight);
+    this.hero.setPixelRatio(ratio * this.composer.getRenderScale());
   }
 
   private resize = (): void => {
@@ -256,7 +264,7 @@ export class Application {
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
     this.applyPixelRatio();
-    if (this.options.reducedMotion) this.renderStaticFrame();
+    if (this.options.reducedMotion || this.paused) this.renderStaticFrame();
   };
 
   private stopLoop(): void {

@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import type { Quality } from '../../engine/renderer';
 
 function createGeometry(quality: Quality): THREE.BufferGeometry {
-  const uSegments = quality === 'high' ? 360 : quality === 'medium' ? 280 : 224;
-  const vSegments = quality === 'high' ? 96 : quality === 'medium' ? 72 : 48;
+  const uSegments = quality === 'high' ? 320 : quality === 'medium' ? 220 : 144;
+  const vSegments = quality === 'high' ? 80 : quality === 'medium' ? 56 : 32;
   const vertexCount = (uSegments + 1) * (vSegments + 1);
   const positions = new Float32Array(vertexCount * 3);
   const parameters = new Float32Array(vertexCount * 2);

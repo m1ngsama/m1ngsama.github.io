@@ -1,1 +1,288 @@
-<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>m1ngsama</title><style>body{margin:0;background:#09090b;color:#fafafa;font-family:-apple-system,BlinkMacSystemFont,sans-serif;display:grid;place-items:center;height:100vh}.card{text-align:center}h1{font-size:72px;margin:0}p{color:#a1a1aa}a{color:#60a5fa;text-decoration:none}</style></head><body><div class='card'><h1>m1ngsama</h1><p>Full-stack Developer · AI Agent · Open Source</p><p><a href='https://github.com/m1ngsama'>GitHub Profile</a></p></div></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="m1ngsama — Full-stack Developer, AI Agent Builder and Open Source Creator">
+  <meta name="theme-color" content="#08090b">
+  <title>m1ngsama</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #08090b;
+      --panel: rgba(19, 21, 25, .7);
+      --text: #f4f4f5;
+      --muted: #9699a2;
+      --line: rgba(255,255,255,.09);
+      --accent: #9bbcff;
+      --mx: 50%;
+      --my: 42%;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { background: var(--bg); }
+
+    body {
+      min-height: 100svh;
+      margin: 0;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      color: var(--text);
+      background:
+        radial-gradient(circle at var(--mx) var(--my), rgba(94, 126, 191, .13), transparent 28rem),
+        radial-gradient(circle at 78% 16%, rgba(140, 110, 170, .08), transparent 22rem),
+        var(--bg);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .22;
+      background-image:
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(circle at center, black, transparent 72%);
+    }
+
+    .scene {
+      width: min(720px, calc(100% - 32px));
+      perspective: 1100px;
+      animation: arrive 900ms cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    .card {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      min-height: 360px;
+      padding: clamp(32px, 7vw, 64px);
+      border: 1px solid var(--line);
+      border-radius: 32px;
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.012)),
+        var(--panel);
+      box-shadow:
+        0 34px 100px rgba(0,0,0,.45),
+        inset 0 1px 0 rgba(255,255,255,.06);
+      backdrop-filter: blur(20px) saturate(120%);
+      transform-style: preserve-3d;
+      transition: transform 180ms ease-out, border-color 300ms ease;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      z-index: -1;
+      opacity: .8;
+      background: radial-gradient(420px circle at var(--mx) var(--my), rgba(154,188,255,.13), transparent 46%);
+    }
+
+    .orb {
+      position: absolute;
+      width: 240px;
+      aspect-ratio: 1;
+      right: -74px;
+      top: -86px;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 34% 28%, rgba(255,255,255,.35), transparent 8%),
+        radial-gradient(circle at 40% 38%, rgba(145,175,235,.28), rgba(59,72,102,.11) 42%, rgba(0,0,0,.02) 70%);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow:
+        inset -24px -28px 60px rgba(0,0,0,.28),
+        inset 10px 12px 28px rgba(255,255,255,.06),
+        0 30px 80px rgba(50,70,120,.18);
+      transform: translateZ(70px);
+      animation: float 7s ease-in-out infinite;
+    }
+
+    .ring {
+      position: absolute;
+      width: 330px;
+      height: 110px;
+      right: -118px;
+      top: 52px;
+      border: 1px solid rgba(180,201,244,.16);
+      border-radius: 50%;
+      transform: translateZ(34px) rotate(-16deg);
+      animation: drift 10s ease-in-out infinite alternate;
+    }
+
+    .eyebrow,
+    h1,
+    .subtitle,
+    .actions {
+      position: relative;
+      transform: translateZ(54px);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 24px;
+      color: #b9bbc2;
+      font-size: 13px;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #8db1ff;
+      box-shadow: 0 0 18px rgba(141,177,255,.7);
+      animation: breathe 2.8s ease-in-out infinite;
+    }
+
+    h1 {
+      max-width: 540px;
+      margin: 0;
+      font-size: clamp(54px, 11vw, 96px);
+      line-height: .92;
+      letter-spacing: -.075em;
+      font-weight: 650;
+    }
+
+    .subtitle {
+      max-width: 520px;
+      margin: 24px 0 0;
+      color: var(--muted);
+      font-size: clamp(16px, 2.4vw, 20px);
+      line-height: 1.65;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 34px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 46px;
+      padding: 0 18px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 999px;
+      color: #eef2ff;
+      background: rgba(255,255,255,.055);
+      text-decoration: none;
+      font-size: 14px;
+      transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+    }
+
+    .button:hover {
+      transform: translateY(-2px);
+      background: rgba(255,255,255,.09);
+      border-color: rgba(255,255,255,.21);
+    }
+
+    .button svg { width: 17px; height: 17px; }
+
+    .hint {
+      position: fixed;
+      bottom: 22px;
+      color: rgba(255,255,255,.3);
+      font-size: 12px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      animation: fade 1.2s 1s both;
+    }
+
+    @keyframes arrive {
+      from { opacity: 0; transform: translateY(18px) scale(.985); }
+      to { opacity: 1; transform: none; }
+    }
+
+    @keyframes float {
+      0%,100% { transform: translateZ(70px) translateY(0) rotate(0deg); }
+      50% { transform: translateZ(70px) translateY(13px) rotate(2deg); }
+    }
+
+    @keyframes drift {
+      from { transform: translateZ(34px) rotate(-16deg) translateX(0); }
+      to { transform: translateZ(34px) rotate(-12deg) translateX(-18px); }
+    }
+
+    @keyframes breathe {
+      0%,100% { opacity: .65; transform: scale(.85); }
+      50% { opacity: 1; transform: scale(1.1); }
+    }
+
+    @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+    @media (max-width: 640px) {
+      .card { min-height: 430px; border-radius: 26px; }
+      .orb { width: 190px; right: -78px; top: -58px; opacity: .8; }
+      .ring { width: 250px; right: -110px; top: 42px; }
+      .hint { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+      }
+      .card { transform: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="scene" aria-label="m1ngsama 个人主页">
+    <section class="card" id="card">
+      <div class="orb" aria-hidden="true"></div>
+      <div class="ring" aria-hidden="true"></div>
+
+      <div class="eyebrow"><span class="dot"></span> Independent developer</div>
+      <h1>m1ngsama</h1>
+      <p class="subtitle">Full-stack Developer · AI Agent Builder · Open Source Creator. Building useful things with code, systems and taste.</p>
+
+      <nav class="actions" aria-label="个人链接">
+        <a class="button" href="https://github.com/m1ngsama" target="_blank" rel="noreferrer">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2.23c-3.22.7-3.9-1.37-3.9-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.78 1.2 1.78 1.2 1.04 1.77 2.72 1.26 3.38.96.1-.75.4-1.26.74-1.55-2.57-.29-5.27-1.28-5.27-5.69 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.16 1.18a10.9 10.9 0 0 1 5.75 0c2.19-1.49 3.16-1.18 3.16-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.42-2.71 5.39-5.29 5.68.42.36.79 1.07.79 2.16v3.2c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .7Z"/></svg>
+          GitHub
+        </a>
+        <a class="button" href="mailto:hello@m1ngsama.dev">Say hello ↗</a>
+      </nav>
+    </section>
+  </main>
+
+  <div class="hint">move gently</div>
+
+  <script>
+    const card = document.getElementById('card');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const finePointer = window.matchMedia('(pointer: fine)').matches;
+
+    if (!reduceMotion && finePointer) {
+      window.addEventListener('pointermove', (event) => {
+        const x = event.clientX / innerWidth;
+        const y = event.clientY / innerHeight;
+        const rotateY = (x - .5) * 7;
+        const rotateX = (.5 - y) * 6;
+
+        document.documentElement.style.setProperty('--mx', `${x * 100}%`);
+        document.documentElement.style.setProperty('--my', `${y * 100}%`);
+        card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+      }, { passive: true });
+
+      document.documentElement.addEventListener('mouseleave', () => {
+        card.style.transform = 'rotateX(0deg) rotateY(0deg)';
+      });
+    }
+  </script>
+</body>
+</html>

@@ -2,10 +2,15 @@ import * as THREE from 'three';
 import { Composer } from '../postprocessing/Composer';
 import { HeroScene } from '../scenes/hero/HeroScene';
 import { createCamera } from './camera';
-import { createRenderer, getQuality, maxPixelRatio, type Quality } from './renderer';
+import { createRenderer, getQuality, targetPixelRatio, type Quality } from './renderer';
 
 interface ApplicationOptions {
   reducedMotion: boolean;
+}
+
+function smoothStep(edge0: number, edge1: number, value: number): number {
+  const x = THREE.MathUtils.clamp((value - edge0) / (edge1 - edge0), 0, 1);
+  return x * x * (3 - 2 * x);
 }
 
 export class Application {
@@ -14,6 +19,7 @@ export class Application {
   private readonly scene = new THREE.Scene();
   private readonly pointer = new THREE.Vector2();
   private readonly pointerTarget = new THREE.Vector2();
+  private readonly cameraTarget = new THREE.Vector3();
   private readonly lookTarget = new THREE.Vector3();
   private readonly quality: Quality;
   private readonly hero: HeroScene;
@@ -21,14 +27,17 @@ export class Application {
   private readonly precisePointer = window.matchMedia('(pointer: fine)').matches;
   private frameId = 0;
   private running = false;
+  private paused = false;
   private destroyed = false;
   private scrollCurrent = 0;
   private scrollTarget = 0;
-  private lastLowQualityFrame = 0;
+  private pulse = 0;
+  private adaptiveScale = 1;
   private fpsStartedAt = performance.now();
   private fpsFrames = 0;
   private elapsed = 0;
   private lastFrameTime = 0;
+  private lastRenderTime = 0;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -36,15 +45,10 @@ export class Application {
   ) {
     this.quality = getQuality();
     this.renderer = createRenderer(canvas, this.quality);
-    this.scene.fog = new THREE.FogExp2(0x050505, 0.034);
+    this.scene.background = new THREE.Color(0x020204);
     this.hero = new HeroScene(this.quality);
     this.scene.add(this.hero);
-    this.composer = new Composer(
-      this.renderer,
-      this.scene,
-      this.camera,
-      this.quality === 'high' && !options.reducedMotion,
-    );
+    this.composer = new Composer(this.renderer, this.scene, this.camera, this.quality, options.reducedMotion);
     this.updateScroll();
     this.resize();
   }
@@ -57,6 +61,7 @@ export class Application {
     if (!this.options.reducedMotion) {
       this.running = true;
       this.lastFrameTime = performance.now();
+      this.lastRenderTime = this.lastFrameTime;
       this.frameId = requestAnimationFrame(this.tick);
     }
   }
@@ -66,15 +71,25 @@ export class Application {
     window.addEventListener('scroll', this.updateScroll, { passive: true });
     document.addEventListener('visibilitychange', this.handleVisibility);
     this.canvas.addEventListener('webglcontextlost', this.handleContextLost);
+    this.canvas.addEventListener('webglcontextrestored', this.handleContextRestored);
 
-    if (this.precisePointer && !this.options.reducedMotion) {
+    if (!this.options.reducedMotion) {
       window.addEventListener('pointermove', this.handlePointer, { passive: true });
-      document.documentElement.addEventListener('pointerleave', this.resetPointer);
+      window.addEventListener('pointerdown', this.handleImpulse, { passive: true });
+      if (this.precisePointer) document.documentElement.addEventListener('pointerleave', this.resetPointer);
     }
   }
 
   private handlePointer = (event: PointerEvent): void => {
-    this.pointerTarget.set(event.clientX / window.innerWidth - 0.5, event.clientY / window.innerHeight - 0.5);
+    this.pointerTarget.set(
+      (event.clientX / Math.max(window.innerWidth, 1) - 0.5) * 2,
+      -(event.clientY / Math.max(window.innerHeight, 1) - 0.5) * 2,
+    );
+  };
+
+  private handleImpulse = (event: PointerEvent): void => {
+    this.handlePointer(event);
+    this.pulse = Math.min(1, this.pulse + 0.82);
   };
 
   private resetPointer = (): void => {
@@ -89,8 +104,9 @@ export class Application {
   private handleVisibility = (): void => {
     if (document.hidden) {
       this.stopLoop();
-    } else if (!this.options.reducedMotion && !this.destroyed) {
+    } else if (!this.options.reducedMotion && !this.destroyed && !this.paused) {
       this.lastFrameTime = performance.now();
+      this.lastRenderTime = this.lastFrameTime;
       this.running = true;
       this.frameId = requestAnimationFrame(this.tick);
     }
@@ -103,66 +119,149 @@ export class Application {
     document.documentElement.classList.add('webgl-fallback');
   };
 
+  private handleContextRestored = (): void => {
+    if (this.destroyed) return;
+    document.documentElement.classList.remove('webgl-fallback');
+    document.documentElement.classList.add('webgl-ready');
+    this.resize();
+    this.renderStaticFrame();
+    if (!this.options.reducedMotion && !this.paused) {
+      this.lastFrameTime = performance.now();
+      this.lastRenderTime = this.lastFrameTime;
+      this.running = true;
+      this.frameId = requestAnimationFrame(this.tick);
+    }
+  };
+
   private tick = (now: number): void => {
     if (!this.running || this.destroyed) return;
     this.frameId = requestAnimationFrame(this.tick);
 
-    if (this.quality === 'low' && now - this.lastLowQualityFrame < 1000 / 30) return;
-    this.lastLowQualityFrame = now;
+    const frameInterval = this.quality === 'low' ? 1000 / 30 : 1000 / 60;
+    if (now - this.lastRenderTime < frameInterval - 1) return;
 
     const delta = Math.min(Math.max((now - this.lastFrameTime) / 1000, 0), 0.05);
     this.lastFrameTime = now;
+    this.lastRenderTime = now;
     this.elapsed += delta;
-    const damping = 1 - Math.exp(-delta * 3.6);
+    const damping = 1 - Math.exp(-delta * 4.2);
     this.pointer.lerp(this.pointerTarget, damping);
-    this.scrollCurrent = THREE.MathUtils.lerp(this.scrollCurrent, this.scrollTarget, damping * 0.72);
+    this.scrollCurrent = THREE.MathUtils.lerp(this.scrollCurrent, this.scrollTarget, damping * 0.68);
+    this.pulse *= Math.exp(-delta * 2.15);
 
-    const cameraRange = this.quality === 'low' ? 0.08 : 0.18;
-    this.camera.position.x = THREE.MathUtils.lerp(this.camera.position.x, this.pointer.x * cameraRange, damping);
-    this.camera.position.y = THREE.MathUtils.lerp(this.camera.position.y, -this.pointer.y * cameraRange * 0.72, damping);
-    this.lookTarget.set(this.pointer.x * 0.08, -this.pointer.y * 0.05, 0);
-    this.camera.lookAt(this.lookTarget);
-
-    this.hero.update(this.elapsed, delta, this.pointer, this.scrollCurrent, window.innerWidth < 760);
+    this.updateCamera(delta);
+    this.hero.update(
+      this.elapsed,
+      delta,
+      this.pointer,
+      this.scrollCurrent,
+      this.isMobile(),
+      this.pulse,
+    );
+    this.composer.update(this.elapsed, this.pulse, this.scrollCurrent);
     this.composer.render(delta);
     this.checkPerformance(now);
   };
+
+  private updateCamera(delta: number): void {
+    const progress = this.scrollCurrent;
+    const reveal = smoothStep(0.06, 0.48, progress);
+    const orbit = smoothStep(0.47, 0.72, progress);
+    const horizon = smoothStep(0.78, 0.99, progress);
+    const mobile = this.isMobile();
+    const wideZ = mobile ? 9.1 : 7.45;
+
+    let x = THREE.MathUtils.lerp(mobile ? 0.1 : 0.58, mobile ? 0.35 : 1.05, reveal);
+    x = THREE.MathUtils.lerp(x, mobile ? -0.35 : -1.05, orbit);
+    x = THREE.MathUtils.lerp(x, 0, horizon);
+    let y = THREE.MathUtils.lerp(-0.05, 0.38, reveal);
+    y = THREE.MathUtils.lerp(y, -0.14, orbit);
+    y = THREE.MathUtils.lerp(y, 0, horizon);
+    let z = THREE.MathUtils.lerp(mobile ? 3.75 : 3.05, wideZ, reveal);
+    z -= orbit * (mobile ? 0.18 : 0.68);
+    z += horizon * (mobile ? 0.72 : 0.58);
+
+    const pointerRange = mobile ? 0.035 : 0.13;
+    this.cameraTarget.set(
+      x + this.pointer.x * pointerRange,
+      y + this.pointer.y * pointerRange * 0.7,
+      z,
+    );
+    const damping = delta === 0 ? 1 : 1 - Math.exp(-delta * 3.2);
+    this.camera.position.lerp(this.cameraTarget, damping);
+
+    const earlyFocus = THREE.MathUtils.lerp(0.45, 0, reveal);
+    this.lookTarget.set(
+      earlyFocus + this.pointer.x * 0.045,
+      this.pointer.y * 0.03,
+      0,
+    );
+    this.camera.lookAt(this.lookTarget);
+  }
 
   private checkPerformance(now: number): void {
     if (this.quality === 'low') return;
     this.fpsFrames += 1;
     const sampleTime = now - this.fpsStartedAt;
-    if (sampleTime < 2400) return;
+    if (sampleTime < 2800) return;
 
     const fps = (this.fpsFrames * 1000) / sampleTime;
-    if (fps < 43 && this.renderer.getPixelRatio() > 1) {
-      this.renderer.setPixelRatio(Math.max(1, this.renderer.getPixelRatio() - 0.25));
-      this.composer.setSize(window.innerWidth, window.innerHeight);
+    if (fps < 46 && this.adaptiveScale > 0.66) {
+      this.adaptiveScale = Math.max(0.66, this.adaptiveScale - 0.12);
+      this.applyPixelRatio();
     }
     this.fpsFrames = 0;
     this.fpsStartedAt = now;
   }
 
   private renderStaticFrame(): void {
-    this.hero.update(0.8, 0, this.pointer, this.scrollTarget, window.innerWidth < 760);
+    const progress = this.options.reducedMotion ? 0.7 : this.scrollTarget;
+    this.scrollCurrent = progress;
+    this.updateCamera(0);
+    this.hero.update(0.8, 0, this.pointer, progress, this.isMobile(), 0);
+    this.composer.update(0.8, 0, progress);
     this.composer.render(0);
+  }
+
+  private isMobile(): boolean {
+    return window.innerWidth < 760 || window.matchMedia('(pointer: coarse)').matches;
+  }
+
+  private applyPixelRatio(): void {
+    const ratio = targetPixelRatio(this.quality) * this.adaptiveScale;
+    this.renderer.setPixelRatio(ratio);
+    this.composer.setPixelRatio(ratio);
+    this.composer.setSize(window.innerWidth, window.innerHeight);
   }
 
   private resize = (): void => {
     const width = window.innerWidth;
     const height = window.innerHeight;
-    this.camera.aspect = width / height;
-    this.camera.fov = width < 760 ? 50 : 42;
+    this.camera.aspect = width / Math.max(height, 1);
+    this.camera.fov = width < 760 ? 38 : 34;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio(this.quality)));
-    this.composer.setSize(width, height);
+    this.applyPixelRatio();
     if (this.options.reducedMotion) this.renderStaticFrame();
   };
 
   private stopLoop(): void {
     this.running = false;
     cancelAnimationFrame(this.frameId);
+  }
+
+  togglePaused(): boolean {
+    if (this.options.reducedMotion || this.destroyed) return true;
+    this.paused = !this.paused;
+    if (this.paused) {
+      this.stopLoop();
+    } else {
+      this.lastFrameTime = performance.now();
+      this.lastRenderTime = this.lastFrameTime;
+      this.running = true;
+      this.frameId = requestAnimationFrame(this.tick);
+    }
+    return this.paused;
   }
 
   destroy(): void {
@@ -172,9 +271,11 @@ export class Application {
     window.removeEventListener('resize', this.resize);
     window.removeEventListener('scroll', this.updateScroll);
     window.removeEventListener('pointermove', this.handlePointer);
+    window.removeEventListener('pointerdown', this.handleImpulse);
     document.removeEventListener('visibilitychange', this.handleVisibility);
     document.documentElement.removeEventListener('pointerleave', this.resetPointer);
     this.canvas.removeEventListener('webglcontextlost', this.handleContextLost);
+    this.canvas.removeEventListener('webglcontextrestored', this.handleContextRestored);
     this.hero.dispose();
     this.composer.dispose();
     this.renderer.dispose();

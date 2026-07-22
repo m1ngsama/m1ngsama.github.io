@@ -1,109 +1,79 @@
-import Lenis from 'lenis';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-gsap.registerPlugin(ScrollTrigger);
-
 export function initMotion(reducedMotion: boolean): () => void {
-  const header = document.querySelector<HTMLElement>('#site-header');
+  const root = document.documentElement;
   const progress = document.querySelector<HTMLElement>('#scroll-progress');
+  const index = document.querySelector<HTMLElement>('#phase-index');
+  const phases = Array.from(document.querySelectorAll<HTMLElement>('.phase'));
+  const phaseLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('.phase-nav a'));
   const cleanups: Array<() => void> = [];
+  let frame = 0;
 
-  const updatePageState = () => {
+  const update = () => {
+    frame = 0;
     const max = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
     const value = Math.min(Math.max(window.scrollY / max, 0), 1);
+    const active = Math.min(phases.length - 1, Math.round(value * (phases.length - 1)));
+
     progress?.style.setProperty('transform', `scaleX(${value})`);
-    header?.classList.toggle('site-header--scrolled', window.scrollY > 24);
+    if (index) index.textContent = String(active + 1).padStart(2, '0');
+    root.classList.toggle('has-scrolled', value > 0.018);
+
+    phaseLinks.forEach((link, linkIndex) => {
+      if (linkIndex === active) link.setAttribute('aria-current', 'step');
+      else link.removeAttribute('aria-current');
+    });
   };
 
-  updatePageState();
-  window.addEventListener('scroll', updatePageState, { passive: true });
-  window.addEventListener('resize', updatePageState, { passive: true });
+  const scheduleUpdate = () => {
+    if (frame) return;
+    frame = requestAnimationFrame(update);
+  };
+
+  window.addEventListener('scroll', scheduleUpdate, { passive: true });
+  window.addEventListener('resize', scheduleUpdate, { passive: true });
   cleanups.push(() => {
-    window.removeEventListener('scroll', updatePageState);
-    window.removeEventListener('resize', updatePageState);
-  });
-
-  if (reducedMotion) {
-    document.querySelectorAll<HTMLElement>('[data-reveal], [data-intro]').forEach((element) => {
-      element.style.opacity = '1';
-      element.style.transform = 'none';
-    });
-    return () => cleanups.forEach((cleanup) => cleanup());
-  }
-
-  const lenis = new Lenis({
-    duration: 1.05,
-    smoothWheel: true,
-    syncTouch: false,
-    wheelMultiplier: 0.9,
-  });
-
-  const lenisFrame = (time: number) => lenis.raf(time * 1000);
-  lenis.on('scroll', ScrollTrigger.update);
-  gsap.ticker.add(lenisFrame);
-  gsap.ticker.lagSmoothing(0);
-
-  const intro = gsap.from('[data-intro]', {
-    y: 18,
-    autoAlpha: 0,
-    duration: 0.95,
-    stagger: 0.1,
-    delay: 0.12,
-    ease: 'power3.out',
-    clearProps: 'transform,opacity,visibility',
-  });
-
-  const reveals = gsap.utils.toArray<HTMLElement>('[data-reveal]').map((element) =>
-    gsap.from(element, {
-      y: 28,
-      autoAlpha: 0,
-      duration: 1,
-      ease: 'power3.out',
-      clearProps: 'transform,opacity,visibility',
-      scrollTrigger: {
-        trigger: element,
-        start: 'top 88%',
-        once: true,
-      },
-    }),
-  );
-
-  const heroFade = gsap.to('.hero__content', {
-    yPercent: -8,
-    opacity: 0.22,
-    ease: 'none',
-    scrollTrigger: {
-      trigger: '.hero',
-      start: 'top top',
-      end: 'bottom 38%',
-      scrub: true,
-    },
+    window.removeEventListener('scroll', scheduleUpdate);
+    window.removeEventListener('resize', scheduleUpdate);
+    cancelAnimationFrame(frame);
   });
 
   document.querySelectorAll<HTMLAnchorElement>('a[href^="#"]').forEach((anchor) => {
     const onClick = (event: MouseEvent) => {
-      const id = anchor.getAttribute('href');
-      if (!id || id === '#') return;
-      const target = document.querySelector<HTMLElement>(id);
+      const selector = anchor.getAttribute('href');
+      if (!selector || selector === '#') return;
+      const target = document.querySelector<HTMLElement>(selector);
       if (!target) return;
       event.preventDefault();
-      lenis.scrollTo(target, { offset: id === '#top' ? 0 : -56, duration: 1.05 });
-      history.replaceState(null, '', id);
+      target.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+      history.replaceState(null, '', selector);
     };
     anchor.addEventListener('click', onClick);
     cleanups.push(() => anchor.removeEventListener('click', onClick));
   });
 
-  ScrollTrigger.refresh();
+  if (window.matchMedia('(pointer: fine)').matches && !reducedMotion) {
+    const movePointer = (event: PointerEvent) => {
+      root.style.setProperty('--pointer-x', `${event.clientX}px`);
+      root.style.setProperty('--pointer-y', `${event.clientY}px`);
+      root.classList.add('pointer-visible');
+    };
+    const pressPointer = () => root.classList.add('pointer-active');
+    const releasePointer = () => root.classList.remove('pointer-active');
+    const hidePointer = () => root.classList.remove('pointer-visible', 'pointer-active');
 
-  return () => {
-    intro.kill();
-    heroFade.kill();
-    reveals.forEach((animation) => animation.kill());
-    ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
-    gsap.ticker.remove(lenisFrame);
-    lenis.destroy();
-    cleanups.forEach((cleanup) => cleanup());
-  };
+    window.addEventListener('pointermove', movePointer, { passive: true });
+    window.addEventListener('pointerdown', pressPointer, { passive: true });
+    window.addEventListener('pointerup', releasePointer, { passive: true });
+    document.documentElement.addEventListener('pointerleave', hidePointer);
+    cleanups.push(() => {
+      window.removeEventListener('pointermove', movePointer);
+      window.removeEventListener('pointerdown', pressPointer);
+      window.removeEventListener('pointerup', releasePointer);
+      document.documentElement.removeEventListener('pointerleave', hidePointer);
+    });
+  }
+
+  update();
+  requestAnimationFrame(() => root.classList.add('is-loaded'));
+
+  return () => cleanups.forEach((cleanup) => cleanup());
 }

@@ -3,17 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#050505" />
+    <meta name="theme-color" content="#020204" />
     <meta name="color-scheme" content="dark" />
     <meta
       name="description"
-      content="m1ngsama is an independent full-stack developer building calm interfaces, agent-native products, and reliable systems."
+      content="A generative WebGL experiment by independent developer m1ngsama."
     />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="m1ngsama — Independent Developer" />
+    <meta property="og:title" content="m1ngsama — WebGL Experiment" />
     <meta
       property="og:description"
-      content="Calm interfaces for complex systems. Full-stack products, AI agents, and infrastructure."
+      content="An evolving study in form, light, and interaction."
     />
     <meta property="og:url" content="https://m1ngsama.github.io/" />
     <meta property="og:site_name" content="m1ngsama" />
@@ -21,214 +21,84 @@
     <link rel="canonical" href="https://m1ngsama.github.io/" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="manifest" href="/site.webmanifest" />
-    <title>m1ngsama — Independent Developer</title>
+    <title>m1ngsama — WebGL Experiment</title>
     <script>
       document.documentElement.classList.replace('no-js', 'js');
     </script>
   </head>
   <body>
-    <a class="skip-link" href="#main">Skip to content</a>
+    <a class="skip-link" href="#phase-1">Enter the experiment</a>
 
     <div class="experience" aria-hidden="true">
-      <div class="experience__fallback"></div>
+      <div class="fallback-art">
+        <i class="fallback-art__a"></i>
+        <i class="fallback-art__b"></i>
+        <i class="fallback-art__core"></i>
+      </div>
       <canvas class="experience__canvas" id="webgl"></canvas>
-      <div class="experience__veil"></div>
+      <div class="experience__vignette"></div>
       <div class="experience__grain"></div>
     </div>
 
-    <div class="scroll-progress" aria-hidden="true"><span id="scroll-progress"></span></div>
-
-    <header class="site-header" id="site-header">
-      <div class="site-header__inner">
-        <a class="brand" href="#top" aria-label="m1ngsama home">
-          <span>m1ng</span><i aria-hidden="true"></i>
-        </a>
-        <nav class="site-nav" aria-label="Primary navigation">
-          <a href="#work">Work</a>
-          <a href="#approach" class="site-nav__optional">Approach</a>
-          <a href="#about" class="site-nav__optional">About</a>
-          <a class="site-nav__external" href="https://github.com/m1ngsama" target="_blank" rel="noreferrer">
-            GitHub <span aria-hidden="true">↗</span>
-          </a>
-        </nav>
-      </div>
+    <header class="chrome" aria-label="Site controls">
+      <a class="wordmark" href="#phase-1" aria-label="m1ngsama, return to the beginning">
+        m1ng<span aria-hidden="true">.</span>
+      </a>
+      <button class="motion-toggle" id="motion-toggle" type="button" aria-label="Pause animation" aria-pressed="false" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path class="motion-toggle__pause" d="M9 7v10M15 7v10" />
+          <path class="motion-toggle__play" d="m9 7 8 5-8 5Z" />
+        </svg>
+      </button>
+      <a
+        class="external-link"
+        href="https://github.com/m1ngsama"
+        target="_blank"
+        rel="noreferrer"
+        aria-label="Visit m1ngsama on GitHub"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M7 17 17 7M8 7h9v9" />
+        </svg>
+      </a>
     </header>
 
-    <main id="main">
-      <section class="hero section-shell" id="top" aria-labelledby="hero-title">
-        <div class="hero__content">
-          <p class="eyebrow hero__eyebrow" data-intro>
-            <span class="status-dot" aria-hidden="true"></span>
-            Independent developer · Agent-native systems
-          </p>
-          <h1 id="hero-title" class="hero__title" data-intro>
-            <span>I build calm interfaces</span>
-            <span class="hero__title-muted">for complex systems.</span>
-          </h1>
-          <p class="hero__lede" data-intro>
-            Full-stack developer working across product, AI agents, and infrastructure—turning ambiguous ideas
-            into software people can trust.
-          </p>
-          <div class="hero__actions" data-intro>
-            <a class="button button--primary" href="#work">
-              Explore work <span aria-hidden="true">↓</span>
-            </a>
-            <a class="button button--quiet" href="https://github.com/m1ngsama" target="_blank" rel="noreferrer">
-              GitHub <span aria-hidden="true">↗</span>
-            </a>
-          </div>
-        </div>
-        <div class="hero__foot" data-intro>
-          <span>01 / Signal</span>
-          <span class="hero__scroll">Scroll to explore <i aria-hidden="true"></i></span>
-        </div>
-      </section>
-
-      <section class="work section-shell" id="work" aria-labelledby="work-title">
-        <header class="section-heading" data-reveal>
-          <p class="eyebrow">Selected work</p>
-          <h2 id="work-title">Systems shaped around people.</h2>
-          <p>Private product work and ongoing experiments across interfaces, automation, and agent infrastructure.</p>
-        </header>
-
-        <div class="project-list">
-          <article class="project" data-reveal>
-            <span class="project__number">01</span>
-            <div class="project__body">
-              <p class="project__meta">Agent systems · 2026</p>
-              <h3>Agent workspace</h3>
-              <p>
-                A production workspace that brings customer context, conversations, and agent reasoning into one
-                coherent operating surface.
-              </p>
-              <ul class="tag-list" aria-label="Capabilities">
-                <li>Product architecture</li>
-                <li>Full-stack</li>
-                <li>Agent orchestration</li>
-              </ul>
-            </div>
-            <span class="project__status">Private system</span>
-          </article>
-
-          <article class="project" data-reveal>
-            <span class="project__number">02</span>
-            <div class="project__body">
-              <p class="project__meta">Workflow automation · 2026</p>
-              <h3>Growth operations desktop</h3>
-              <p>
-                A cross-platform workflow that turns repetitive acquisition operations into a reliable, observable
-                system for real teams.
-              </p>
-              <ul class="tag-list" aria-label="Capabilities">
-                <li>Desktop product</li>
-                <li>Automation</li>
-                <li>Production operations</li>
-              </ul>
-            </div>
-            <span class="project__status">Private system</span>
-          </article>
-
-          <article class="project project--public" data-reveal>
-            <span class="project__number">03</span>
-            <div class="project__body">
-              <p class="project__meta">Open source · Ongoing</p>
-              <h3>Tools for thoughtful builders</h3>
-              <p>
-                Small, focused experiments in developer tooling, agent workflows, visual systems, and dependable
-                infrastructure.
-              </p>
-              <ul class="tag-list" aria-label="Capabilities">
-                <li>Developer experience</li>
-                <li>AI-native workflows</li>
-                <li>Open source</li>
-              </ul>
-            </div>
-            <a class="project__link" href="https://github.com/m1ngsama" target="_blank" rel="noreferrer">
-              Explore GitHub <span aria-hidden="true">↗</span>
-            </a>
-          </article>
-        </div>
-      </section>
-
-      <section class="approach section-shell" id="approach" aria-labelledby="approach-title">
-        <header class="section-heading section-heading--compact" data-reveal>
-          <p class="eyebrow">Approach</p>
-          <h2 id="approach-title">Design and engineering, held in one hand.</h2>
-        </header>
-
-        <div class="principles">
-          <article class="principle" data-reveal>
-            <span>01</span>
-            <h3>Product interfaces</h3>
-            <p>Interaction before ornament. Every surface should make the next decision feel obvious.</p>
-            <ul>
-              <li>Product thinking</li>
-              <li>Interface systems</li>
-              <li>Rapid prototyping</li>
-            </ul>
-          </article>
-          <article class="principle" data-reveal>
-            <span>02</span>
-            <h3>Full-stack systems</h3>
-            <p>The interface is only as calm as the system beneath it—observable, resilient, and simple to change.</p>
-            <ul>
-              <li>Web and desktop</li>
-              <li>APIs and data</li>
-              <li>Production infrastructure</li>
-            </ul>
-          </article>
-          <article class="principle" data-reveal>
-            <span>03</span>
-            <h3>Agent infrastructure</h3>
-            <p>Agents work best as collaborators inside clear boundaries, with context, tools, and feedback loops.</p>
-            <ul>
-              <li>Agent orchestration</li>
-              <li>Tool integration</li>
-              <li>Evaluation and iteration</li>
-            </ul>
-          </article>
-        </div>
-      </section>
-
-      <section class="manifesto section-shell" id="about" aria-labelledby="manifesto-title">
-        <div class="manifesto__index" data-reveal>
-          <p class="eyebrow">Working principle</p>
-          <span>02 / Clarity</span>
-        </div>
-        <div class="manifesto__body">
-          <h2 id="manifesto-title" data-reveal>
-            Complexity belongs in the system, <span>not in the experience.</span>
-          </h2>
-          <div class="manifesto__copy" data-reveal>
-            <p>
-              I work where product design and engineering meet: understanding the real constraint, finding the
-              smallest coherent model, and carrying it all the way into production.
-            </p>
-            <p>
-              The goal is not software that merely looks simple. It is software whose complexity has been carefully
-              resolved.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section class="contact section-shell" aria-labelledby="contact-title">
-        <div class="contact__rule" data-reveal></div>
-        <div class="contact__content" data-reveal>
-          <p class="eyebrow">Next</p>
-          <h2 id="contact-title">Have something complex<br />to make simple?</h2>
-          <a class="button button--primary button--large" href="https://github.com/m1ngsama" target="_blank" rel="noreferrer">
-            Find me on GitHub <span aria-hidden="true">↗</span>
-          </a>
-        </div>
-      </section>
+    <main id="main" aria-label="The Fold, a generative WebGL experiment">
+      <h1 class="sr-only">The Fold — a generative WebGL experiment by m1ngsama</h1>
+      <p class="sr-only">
+        Scroll through five phases as a metallic surface folds into a continuous ring. The animation is decorative;
+        the GitHub link remains available above.
+      </p>
+      <section class="phase" id="phase-1" aria-label="Phase one: surface"></section>
+      <section class="phase" id="phase-2" aria-label="Phase two: fold"></section>
+      <section class="phase" id="phase-3" aria-label="Phase three: signal"></section>
+      <section class="phase" id="phase-4" aria-label="Phase four: orbit"></section>
+      <section class="phase" id="phase-5" aria-label="Phase five: horizon"></section>
     </main>
 
-    <footer class="site-footer section-shell">
-      <span>© 2026 m1ngsama</span>
-      <span>Code · systems · taste</span>
-      <a href="#top">Back to top ↑</a>
-    </footer>
+    <nav class="phase-nav" aria-label="Experiment phases">
+      <a href="#phase-1" aria-label="Go to phase 1"><span></span></a>
+      <a href="#phase-2" aria-label="Go to phase 2"><span></span></a>
+      <a href="#phase-3" aria-label="Go to phase 3"><span></span></a>
+      <a href="#phase-4" aria-label="Go to phase 4"><span></span></a>
+      <a href="#phase-5" aria-label="Go to phase 5"><span></span></a>
+    </nav>
+
+    <div class="hud" aria-hidden="true">
+      <span class="hud__index" id="phase-index">01</span>
+      <span class="hud__rule"><i id="scroll-progress"></i></span>
+      <span class="hud__total">05</span>
+    </div>
+
+    <div class="scroll-cue" aria-hidden="true">
+      <span></span>
+    </div>
+
+    <div class="pointer" aria-hidden="true"><i></i></div>
+
+    <noscript>
+      <p class="noscript">This visual experiment requires JavaScript.</p>
+    </noscript>
 
     <script type="module" src="/main.ts"></script>
   </body>

@@ -15,6 +15,7 @@ const cosmologyShader = {
     uProgress: { value: 0 },
     uAspect: { value: 1 },
     uVelocity: { value: 0 },
+    uLensRadius: { value: 0.29 },
     uPointer: { value: new THREE.Vector2() },
   },
   vertexShader: /* glsl */ `
@@ -31,6 +32,7 @@ const cosmologyShader = {
     uniform float uProgress;
     uniform float uAspect;
     uniform float uVelocity;
+    uniform float uLensRadius;
     uniform vec2 uPointer;
     varying vec2 vUv;
 
@@ -61,7 +63,7 @@ const cosmologyShader = {
       vec2 radialVelocity = direction / vec2(uAspect, 1.0) * velocity;
       sourceUv -= radialVelocity * (1.0 - horizon * 0.7);
       vec2 tangent = vec2(-direction.y, direction.x) / vec2(uAspect, 1.0);
-      float photonZone = exp(-abs(normalizedRadius - 0.43) * 36.0) * horizon;
+      float photonZone = exp(-abs(normalizedRadius - uLensRadius) * 46.0) * horizon;
 
       float aberration = (0.00006 + uPulse * 0.00072 + velocity * 0.14)
         * smoothstep(0.04, 0.78, normalizedRadius);
@@ -134,6 +136,9 @@ export class Composer {
     this.cosmology.uniforms.uProgress!.value = progress;
     this.cosmology.uniforms.uAspect!.value = window.innerWidth / Math.max(window.innerHeight, 1);
     this.cosmology.uniforms.uVelocity!.value = velocity;
+    this.cosmology.uniforms.uLensRadius!.value = window.innerWidth / Math.max(window.innerHeight, 1) < 0.75
+      ? 0.15
+      : 0.29;
     (this.cosmology.uniforms.uPointer!.value as THREE.Vector2).copy(pointer);
   }
 

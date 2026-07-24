@@ -89,7 +89,8 @@ export class Backdrop extends THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMateri
           float dustLane = exp(-abs(galaxyP.y + sin(galaxyP.x * 5.2) * 0.018) * 38.0) * galaxy;
 
           float halo = exp(-radius * mix(5.2, 3.8, world));
-          float lensRadius = mix(0.34, 0.425, horizon);
+          float projectedHorizon = mix(0.15, 0.29, step(0.75, uAspect));
+          float lensRadius = mix(0.34, projectedHorizon, horizon);
           float causticArc = smoothstep(-0.82, 0.65, cos(polarAngle - 0.38));
           causticArc *= 0.34 + 0.66 * smoothstep(-0.55, 0.92, cos(polarAngle * 2.0 + 0.7));
           float photonRing = exp(-abs(radius - lensRadius) * mix(115.0, 185.0, horizon))
@@ -104,8 +105,8 @@ export class Backdrop extends THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMateri
 
           vec3 color = vec3(0.0007, 0.0009, 0.0022);
           color += vec3(0.009, 0.014, 0.038) * halo;
-          color += vec3(0.006, 0.011, 0.028) * cosmicWeb * (0.18 + galaxy * 0.44);
-          color += vec3(0.022, 0.034, 0.08) * galaxyHaze;
+          color += vec3(0.006, 0.011, 0.028) * cosmicWeb * (0.035 + galaxy * 0.075);
+          color += vec3(0.016, 0.023, 0.052) * galaxyHaze;
           color -= vec3(0.018, 0.022, 0.038) * dustLane * 0.7;
           color += vec3(0.2, 0.31, 0.72) * photonRing * 0.16;
           color += vec3(0.08, 0.12, 0.32) * echoRing;
@@ -116,14 +117,16 @@ export class Backdrop extends THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMateri
           #include <colorspace_fragment>
         }
       `,
+      transparent: true,
       depthWrite: false,
-      depthTest: false,
+      depthTest: true,
+      blending: THREE.AdditiveBlending,
       toneMapped: true,
     });
 
     super(new THREE.PlaneGeometry(2, 2), material);
     this.name = 'The Observable Dark';
-    this.renderOrder = -100;
+    this.renderOrder = -80;
     this.frustumCulled = false;
   }
 

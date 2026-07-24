@@ -37,7 +37,7 @@ function createGeometry(quality: Quality): THREE.BufferGeometry {
     const dataOffset = index * 4;
     const roll = random();
     const population = roll < 0.15 ? 0 : roll < 0.55 ? 1 : roll < 0.8 ? 2 : roll < 0.95 ? 3 : 4;
-    const arm = Math.floor(random() * 2);
+    const arm = Math.floor(random() * 4);
     let radius = Math.pow(random(), 1.05);
     if (population === 0) radius = Math.pow(random(), 2.7) * 0.32;
     else if (population === 1 || population === 4) radius = 0.035 + Math.pow(random(), 0.92) * 0.965;
@@ -45,7 +45,7 @@ function createGeometry(quality: Quality): THREE.BufferGeometry {
     else radius = Math.pow(random(), 0.48) * 1.12;
 
     galaxyData[dataOffset] = radius;
-    galaxyData[dataOffset + 1] = arm / 2;
+    galaxyData[dataOffset + 1] = arm / 4;
     galaxyData[dataOffset + 2] = centeredRandom(random);
     galaxyData[dataOffset + 3] = centeredRandom(random);
     populations[index] = population;
@@ -105,13 +105,15 @@ const vertexShader = /* glsl */ `
     float radius = 0.12 + pow(radiusParameter, 0.76) * 6.0;
     float crossArm = aGalaxy.z;
     float armAngle = aGalaxy.y * TAU;
+    float majorArm = 1.0 - step(0.24, abs(fract(aGalaxy.y * 2.0)));
     float winding = (0.08 + pow(radiusParameter, 0.74) * 1.24) * TAU;
     float branch = step(0.68, aSeed.w)
       * sin(radiusParameter * 17.0 + aSeed.y * TAU)
       * smoother(0.28, 0.82, radiusParameter)
       * 0.22;
-    float angularScatter = crossArm * mix(0.46, 0.62, armDefinition);
+    float angularScatter = crossArm * mix(0.5, 0.74, armDefinition);
     angularScatter += (aSeed.x - 0.5) * mix(0.34, 0.2, armDefinition);
+    angularScatter *= mix(1.22, 0.88, majorArm);
     float differentialRotation = uTime * mix(0.022, 0.004, radiusParameter);
     theta = armAngle + winding + angularScatter + branch + differentialRotation;
 
@@ -139,6 +141,9 @@ const vertexShader = /* glsl */ `
       sin(corePhi) * sin(coreTheta),
       cos(corePhi) * 0.54
     );
+    float barAngle = 0.38;
+    mat2 barRotation = mat2(cos(barAngle), -sin(barAngle), sin(barAngle), cos(barAngle));
+    corePosition.xy = barRotation * vec2(corePosition.x * 1.72, corePosition.y * 0.52);
 
     float haloTheta = aSeed.x * TAU;
     float haloPhi = acos(clamp(aGalaxy.z, -1.0, 1.0));
@@ -169,9 +174,9 @@ const vertexShader = /* glsl */ `
     float infallRadius = mix(initialRadius, 0.18 + aSeed.z * 0.34, collapse);
     vec3 infall = vec3(vec2(cos(theta), sin(theta)) * infallRadius, spiral.z * (1.0 - collapse));
 
-    float arcRadius = 3.34 + aGalaxy.z * 0.14 + (aSeed.y - 0.5) * 0.06;
+    float arcRadius = 2.35 + aGalaxy.z * 0.1 + (aSeed.y - 0.5) * 0.045;
     vec3 arc = vec3(vec2(cos(theta), sin(theta)) * arcRadius, aGalaxy.w * 0.045);
-    float ringRadius = 3.055 + aGalaxy.z * 0.032 + (aSeed.x - 0.5) * 0.018;
+    float ringRadius = 2.18 + aGalaxy.z * 0.024 + (aSeed.x - 0.5) * 0.014;
     ringRadius += sin(theta * 5.0 - uTime * 3.2 + aSeed.y * TAU) * uEnergy * 0.012;
     vec3 ring = vec3(vec2(cos(theta), sin(theta)) * ringRadius, aGalaxy.w * 0.012);
     vec3 target = mix(infall, arc, escapeWeight);
@@ -213,6 +218,9 @@ const vertexShader = /* glsl */ `
       + isDisk * 0.22
       + isHalo * 0.075
       + isCluster * 1.0;
+    float majorArm = 1.0 - step(0.24, abs(fract(aGalaxy.y * 2.0)));
+    float armPopulation = clamp(isArm + isCluster, 0.0, 1.0);
+    populationWeight *= mix(1.0, mix(0.58, 1.0, majorArm), armPopulation);
     float dustTransmission = 1.0 - isArm
       * exp(-abs(aGalaxy.z + 0.16) * 6.8)
       * smoother(0.18, 0.78, aGalaxy.x)
@@ -226,7 +234,7 @@ const vertexShader = /* glsl */ `
     float doppler = mix(0.16, 1.0, smoothstep(-0.85, 0.9, cos(horizonTheta - 0.42)));
     float ringAlpha = uHorizon
       * ringWeight
-      * mix(0.08, 0.32, aSeed.x)
+      * mix(0.025, 0.12, aSeed.x)
       * doppler
       * (0.88 + uEnergy * 0.26);
     float arcAlpha = uHorizon * escapeWeight * (1.0 - ringWeight)
@@ -319,7 +327,7 @@ export class Galaxy extends THREE.Points<THREE.BufferGeometry, THREE.ShaderMater
     super(createGeometry(quality), material);
     this.volume = new GalaxyVolume(quality);
     this.add(this.volume);
-    this.name = 'Layered Spiral Galaxy';
+    this.name = 'Gaia-Informed Barred Spiral';
     this.visible = false;
     this.frustumCulled = false;
     this.renderOrder = 0;

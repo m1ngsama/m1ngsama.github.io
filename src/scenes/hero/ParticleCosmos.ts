@@ -48,6 +48,10 @@ const vertexShader = /* glsl */ `
   varying float vAlpha;
   varying float vRay;
 
+  float cosmicObservedElevation(vec2 parameter) {
+    return parameter.x * 0.0;
+  }
+
   ${cosmicFieldGLSL}
 
   void main() {

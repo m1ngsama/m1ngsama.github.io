@@ -20,15 +20,6 @@ export const cosmicFieldGLSL = /* glsl */ `
     return fract((p.x + p.y) * p.z);
   }
 
-  vec3 cosmicHash33(vec3 p) {
-    p = vec3(
-      dot(p, vec3(127.1, 311.7, 74.7)),
-      dot(p, vec3(269.5, 183.3, 246.1)),
-      dot(p, vec3(113.5, 271.9, 124.6))
-    );
-    return fract(sin(p) * 43758.5453123);
-  }
-
   float cosmicNoise3(vec3 p) {
     vec3 i = floor(p);
     vec3 f = fract(p);
@@ -65,22 +56,6 @@ export const cosmicFieldGLSL = /* glsl */ `
     return value;
   }
 
-  float cosmicWorley(vec3 p) {
-    vec3 cell = floor(p);
-    vec3 local = fract(p);
-    float nearest = 8.0;
-    for (int z = -1; z <= 1; z++) {
-      for (int y = -1; y <= 1; y++) {
-        for (int x = -1; x <= 1; x++) {
-          vec3 neighbour = vec3(float(x), float(y), float(z));
-          vec3 feature = cosmicHash33(cell + neighbour);
-          nearest = min(nearest, length(neighbour + feature - local));
-        }
-      }
-    }
-    return nearest;
-  }
-
   vec3 cosmicMaterialCoordinate(vec2 parameter) {
     float angle = parameter.x * COSMIC_TAU;
     float halfAngle = parameter.x * COSMIC_PI;
@@ -100,15 +75,11 @@ export const cosmicFieldGLSL = /* glsl */ `
     return cosmicRidgedFbm(material * vec3(3.2, 3.2, 2.4) + vec3(11.1, 3.7, 5.2));
   }
 
-  float cosmicCraterMetric(vec2 parameter) {
-    vec3 material = cosmicMaterialCoordinate(parameter);
-    return cosmicWorley(material * vec3(7.2, 7.2, 5.4) + vec3(8.2, 2.6, 4.4));
-  }
-
   float cosmicPhaseDelay(vec2 parameter) {
-    float front = sin(parameter.x * COSMIC_TAU + parameter.y * 0.82);
-    float scar = sin(parameter.x * COSMIC_TAU * 2.0 + parameter.y * 1.7);
-    return front * 0.009 + scar * 0.004 + abs(parameter.y) * 0.003;
+    vec3 material = cosmicMaterialCoordinate(parameter);
+    float front = sin(parameter.x * COSMIC_TAU + material.z * 0.82);
+    float scar = sin(parameter.x * COSMIC_TAU * 2.0 + material.z * 1.7);
+    return front * 0.009 + scar * 0.004 + abs(material.z) * 0.003;
   }
 
   void cosmicPhases(
@@ -154,7 +125,7 @@ export const cosmicFieldGLSL = /* glsl */ `
   }
 
   vec3 cosmicMobiusSurface(vec2 parameter) {
-    float theta = parameter.x * COSMIC_TAU;
+    float theta = parameter.x * COSMIC_TAU + COSMIC_PI;
     float halfTheta = theta * 0.5;
     float width = parameter.y * 0.58;
     float radius = 2.14;
@@ -177,10 +148,10 @@ export const cosmicFieldGLSL = /* glsl */ `
   }
 
   vec3 cosmicHorizonSurface(vec2 parameter) {
-    float theta = parameter.x * COSMIC_TAU;
+    float theta = parameter.x * COSMIC_TAU + COSMIC_PI;
     float halfTheta = theta * 0.5;
     float width = parameter.y * 0.023;
-    float radius = 2.16;
+    float radius = 1.58;
     return vec3(
       (radius + width * cos(halfTheta)) * cos(theta),
       (radius + width * cos(halfTheta)) * sin(theta),
@@ -244,9 +215,7 @@ export const cosmicFieldGLSL = /* glsl */ `
     cosmicPhases(parameter, veil, planet, orbit, galaxy, horizon);
     float macro = cosmicMaterialField(parameter);
     float ridges = cosmicMaterialRidges(parameter);
-    float craterDistance = cosmicCraterMetric(parameter);
-    float craterBowl = 1.0 - cosmicSmoother(0.045, 0.17, craterDistance);
-    float craterRim = exp(-pow((craterDistance - 0.18) / 0.035, 2.0));
+    float observedElevation = cosmicObservedElevation(parameter);
     float veilWave = sin(parameter.x * 44.0 + uTime * 0.12)
       * cos(parameter.y * 5.2 - uTime * 0.06);
     float filament = sin(parameter.x * 112.0 - uTime * 0.31)
@@ -254,8 +223,8 @@ export const cosmicFieldGLSL = /* glsl */ `
     float pulseWave = sin(length(base.xy) * 13.0 - uTime * 5.2) * uPulse;
     float displacement = (macro - 0.5) * 0.105 * veil;
     displacement += veilWave * 0.018 * veil;
-    displacement += ((macro - 0.5) * 0.074 + (ridges - 0.54) * 0.022) * planet;
-    displacement += (-craterBowl * 0.007 + craterRim * 0.0045) * planet;
+    displacement += ((macro - 0.5) * 0.022 + (ridges - 0.54) * 0.009) * planet;
+    displacement += observedElevation * 0.035 * planet;
     displacement += (ridges - 0.52) * 0.009 * orbit;
     displacement += filament * 0.014 * galaxy;
     displacement += pulseWave * mix(0.018, 0.035, orbit + horizon);
@@ -295,7 +264,7 @@ export const cosmicFieldGLSL = /* glsl */ `
     float galaxy;
     float horizon;
     cosmicPhases(parameter, veil, planet, orbit, galaxy, horizon);
-    float nonOrientable = cosmicSmoother(0.18, 0.72, orbit);
+    float nonOrientable = cosmicSmoother(0.18, 0.72, clamp(orbit + horizon, 0.0, 1.0));
     vec2 du = vec2(0.0018, 0.0);
     vec2 dv = vec2(0.0, 0.0045);
     vec3 beforeU = cosmicSurfacePoint(cosmicDerivativeParameter(parameter, -du, nonOrientable));

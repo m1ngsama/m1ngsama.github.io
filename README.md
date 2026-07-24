@@ -5,17 +5,20 @@ Generative WebGL experiment for [m1ngsama.github.io](https://m1ngsama.github.io/
 ## One Surface Cosmology
 
 A nearly textless, reversible WebGL film. One parameterized surface moves through five connected states: spacetime,
-a shadowed world, a true Möbius orbit, a spiral galaxy, and an event horizon. A shared material-space field transports
-the same grain, scars, relief, and surface-born stars through every topology. A lensed deep field, stratified particle
-galaxy, volumetric galactic medium, and narrow accretion flow share the same scroll timeline, pointer field, velocity
-response, and press impulse.
+an observed lunar world, a true Möbius orbit, a barred spiral galaxy, and an event horizon. NASA LRO/LOLA lunar data,
+a NASA deep-star map, and the NASA/JPL-Caltech/UCLA WISE infrared sky are loaded locally and fused with the procedural
+geometry. A lensed deep field, stratified particle galaxy, volumetric galactic medium, and relativistic accretion flow
+share the same scroll timeline, pointer field, velocity response, and press impulse.
 
-The visual system is procedural: there are no image textures, stock space assets, or remote runtime dependencies.
+There are no remote runtime dependencies. Every observational texture is optimized and bundled with the build; the
+experience starts with valid procedural fallbacks and promotes itself when the observation data has loaded. Sources,
+credits, transformations, and checksums are recorded in [`ASTRONOMY_ASSETS.md`](./ASTRONOMY_ASSETS.md).
 
 ## Stack
 
 - Vite + TypeScript + Three.js
-- Custom GLSL topology transport, finite-difference normals, anisotropic black-metal shading, particles, lensing, and film grain
+- NASA observation textures plus custom GLSL topology transport, finite-difference normals, physically inspired
+  differential rotation, Doppler asymmetry, particles, lensing, and film grain
 - Adaptive pixel ratio and quality-specific geometry/particle budgets
 - WebGL2 capability check, context recovery, background-tab pause, reduced-motion still frame, and CSS fallback
 - GitHub Pages from `main / root`
@@ -29,6 +32,7 @@ src/index.html
 └── engine/Application.ts
     ├── engine/renderer.ts
     ├── engine/camera.ts
+    ├── engine/AstronomyAssets.ts
     ├── scenes/hero/HeroScene.ts
     │   ├── sequence.ts
     │   ├── cosmicField.ts
@@ -37,6 +41,7 @@ src/index.html
     │   ├── WorldCore.ts
     │   ├── Galaxy.ts
     │   ├── GalaxyVolume.ts
+    │   ├── ObservedSky.ts
     │   ├── Starfield.ts
     │   ├── AccretionDisk.ts
     │   └── Backdrop.ts

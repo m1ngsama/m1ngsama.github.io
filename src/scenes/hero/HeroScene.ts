@@ -1,9 +1,11 @@
 import * as THREE from 'three';
+import type { AstronomyAssets } from '../../engine/AstronomyAssets';
 import type { Quality } from '../../engine/renderer';
 import { AccretionDisk } from './AccretionDisk';
 import { Backdrop } from './Backdrop';
 import { CosmicSurface } from './CosmicSurface';
 import { Galaxy } from './Galaxy';
+import { ObservedSky } from './ObservedSky';
 import { ParticleCosmos } from './ParticleCosmos';
 import { sampleSequence } from './sequence';
 import { Starfield } from './Starfield';
@@ -11,6 +13,7 @@ import { WorldCore } from './WorldCore';
 
 export class HeroScene extends THREE.Group {
   private readonly backdrop: Backdrop;
+  private readonly observedSky: ObservedSky;
   private readonly starfield: Starfield;
   private readonly galaxy: Galaxy;
   private readonly surface: CosmicSurface;
@@ -19,28 +22,32 @@ export class HeroScene extends THREE.Group {
   private readonly accretion: AccretionDisk;
   private readonly matter = new THREE.Group();
 
-  constructor(private readonly quality: Quality) {
+  constructor(
+    private readonly quality: Quality,
+    assets: AstronomyAssets,
+  ) {
     super();
     this.name = 'One Surface Cosmology';
 
     this.starfield = new Starfield(quality);
     this.backdrop = new Backdrop(quality);
+    this.observedSky = new ObservedSky(assets, quality);
     this.galaxy = new Galaxy(quality);
-    this.surface = new CosmicSurface(quality);
+    this.surface = new CosmicSurface(quality, assets);
     this.particles = new ParticleCosmos(quality);
     this.world = new WorldCore(quality);
     this.accretion = new AccretionDisk(quality);
 
     this.matter.name = 'The Only Matter';
-    this.matter.add(this.surface, this.world, this.particles);
+    this.matter.add(this.surface, this.world, this.particles, this.accretion);
     this.galaxy.rotation.set(0.94, 0.12, -0.32);
     this.galaxy.position.z = -0.32;
 
     this.add(
       this.backdrop,
+      this.observedSky,
       this.starfield,
       this.galaxy,
-      this.accretion,
       this.matter,
     );
   }
@@ -59,7 +66,11 @@ export class HeroScene extends THREE.Group {
     const damping = delta === 0 ? 1 : 1 - Math.exp(-delta * 3.25);
     const velocityLean = THREE.MathUtils.clamp(scrollVelocity * 0.006, -0.08, 0.08);
     const mobileScale = mobile ? 0.82 : 1;
-    const targetScale = THREE.MathUtils.lerp(1, mobileScale, 1 - frame.veil);
+    const orbitScale = 1 - frame.orbit * (mobile ? 0.1 : 0.2);
+    const matterGalaxyScale = 1 - frame.galaxy * (mobile ? 0.16 : 0.22);
+    const targetScale = THREE.MathUtils.lerp(1, mobileScale, 1 - frame.veil)
+      * orbitScale
+      * matterGalaxyScale;
 
     this.matter.scale.setScalar(THREE.MathUtils.lerp(this.matter.scale.x, targetScale, damping));
     this.matter.rotation.x = THREE.MathUtils.lerp(
@@ -91,6 +102,7 @@ export class HeroScene extends THREE.Group {
     this.surface.update(time, progress, pointer, energy, mobile);
     this.particles.update(time, progress, pointer, energy, mobile);
     this.world.update(time, frame, pointer, energy);
+    this.observedSky.update(time, frame);
     this.starfield.update(time, progress, frame, pointer, energy);
     this.galaxy.update(time, frame, pointer, energy);
     this.accretion.update(time, frame.horizon, energy);
@@ -111,5 +123,6 @@ export class HeroScene extends THREE.Group {
     this.galaxy.dispose();
     this.accretion.dispose();
     this.backdrop.dispose();
+    this.observedSky.dispose();
   }
 }

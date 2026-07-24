@@ -13,88 +13,130 @@ const vertexShader = /* glsl */ `
 function fragmentShader(quality: Quality): string {
   const octaves = quality === 'high' ? 5 : quality === 'medium' ? 4 : 3;
   return /* glsl */ `
-  uniform float uTime;
-  uniform float uPresence;
-  uniform float uPulse;
-  varying vec2 vUv;
+    uniform float uTime;
+    uniform float uPresence;
+    uniform float uPulse;
+    varying vec2 vUv;
 
-  const float TAU = 6.283185307179586;
+    const float TAU = 6.283185307179586;
 
-  float hash21(vec2 p) {
-    p = fract(p * vec2(123.34, 456.21));
-    p += dot(p, p + 45.32);
-    return fract(p.x * p.y);
-  }
-
-  float noise2(vec2 p) {
-    vec2 i = floor(p);
-    vec2 f = fract(p);
-    f = f * f * (3.0 - 2.0 * f);
-    return mix(
-      mix(hash21(i), hash21(i + vec2(1.0, 0.0)), f.x),
-      mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), f.x),
-      f.y
-    );
-  }
-
-  float fbm(vec2 p) {
-    float value = 0.0;
-    float amplitude = 0.5;
-    for (int i = 0; i < ${octaves}; i++) {
-      value += noise2(p) * amplitude;
-      p = p * 2.03 + vec2(7.1, 3.7);
-      amplitude *= 0.5;
+    float hash21(vec2 p) {
+      p = fract(p * vec2(123.34, 456.21));
+      p += dot(p, p + 45.32);
+      return fract(p.x * p.y);
     }
-    return value;
-  }
 
-  void main() {
-    vec2 p = (vUv - 0.5) * 2.0;
-    float radius = length(p);
-    float angle = atan(p.y, p.x);
-    float kepler = uTime * mix(0.18, 0.028, smoothstep(0.22, 0.92, radius));
-    vec2 circular = vec2(cos(angle - kepler), sin(angle - kepler));
-    vec2 tangent = vec2(-circular.y, circular.x);
-    vec2 flow = circular * (4.1 + radius * 8.6)
-      + tangent * (radius * 4.2)
-      + vec2(log(max(radius, 0.03)) * 3.4, radius * 5.0);
-    vec2 warp = vec2(
-      fbm(flow * 0.54 + vec2(-uTime * 0.034, uTime * 0.012)),
-      fbm(flow * 0.54 + vec2(8.7, 3.1) + vec2(uTime * 0.015, -uTime * 0.022))
-    ) - 0.5;
-    float turbulence = fbm(flow + warp * 3.4);
-    float filaments = fbm(flow * 2.08 + circular * turbulence * 3.0 - vec2(uTime * 0.065, 0.0));
-    float inner = smoothstep(0.33, 0.405, radius);
-    float outer = 1.0 - smoothstep(0.88, 1.0, radius);
-    float innerHeat = exp(-abs(radius - 0.43) * 12.5);
-    float density = smoothstep(0.31, 0.79, turbulence * 0.68 + filaments * 0.46);
-    float radialWave = sin(radius * 108.0 + turbulence * 11.0 + warp.x * 5.0);
-    float antialiasWidth = max(fwidth(radius) * 108.0, 0.065);
-    float lanes = smoothstep(-antialiasWidth, antialiasWidth, radialWave) * 0.44 + 0.56;
-    float losVelocity = p.x / max(radius, 0.001);
-    float approaching = smoothstep(-0.72, 0.92, losVelocity);
-    float doppler = mix(0.2, 1.0, approaching * approaching);
-    float gravitationalRedshift = smoothstep(0.31, 0.68, radius);
-    float pulseBand = exp(-pow((radius - fract(uTime * 0.28) * 0.62 - 0.34) / 0.035, 2.0)) * uPulse;
-    float brokenArc = smoothstep(0.27, 0.74, fbm(flow * 0.72 + warp * 2.0));
-    float alpha = inner * outer * density * brokenArc
-      * (0.055 + lanes * 0.17 + innerHeat * 0.12)
-      * uPresence;
-    alpha *= 0.54 + doppler * 0.62;
-    alpha += pulseBand * inner * outer * brokenArc * uPresence * 0.055;
+    float noise2(vec2 p) {
+      vec2 i = floor(p);
+      vec2 f = fract(p);
+      f = f * f * (3.0 - 2.0 * f);
+      return mix(
+        mix(hash21(i), hash21(i + vec2(1.0, 0.0)), f.x),
+        mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), f.x),
+        f.y
+      );
+    }
 
-    vec3 redshifted = vec3(0.34, 0.16, 0.09);
-    vec3 neutral = vec3(0.46, 0.42, 0.38);
-    vec3 blueshifted = vec3(0.23, 0.38, 0.78);
-    vec3 color = mix(redshifted, neutral, gravitationalRedshift);
-    color = mix(color, blueshifted, approaching * approaching * 0.72);
-    color *= (0.12 + filaments * 0.54 + innerHeat * 0.42 + pulseBand * 0.28) * doppler;
-    if (alpha < 0.006) discard;
-    gl_FragColor = vec4(color, alpha);
-    #include <tonemapping_fragment>
-    #include <colorspace_fragment>
-  }
-`;
+    float fbm(vec2 p) {
+      float value = 0.0;
+      float amplitude = 0.5;
+      for (int i = 0; i < ${octaves}; i++) {
+        value += noise2(p) * amplitude;
+        p = p * 2.03 + vec2(7.1, 3.7);
+        amplitude *= 0.5;
+      }
+      return value;
+    }
+
+    float smoother(float edge0, float edge1, float value) {
+      float x = clamp((value - edge0) / max(edge1 - edge0, 0.0001), 0.0, 1.0);
+      return x * x * x * (x * (x * 6.0 - 15.0) + 10.0);
+    }
+
+    void main() {
+      vec2 p = (vUv - 0.5) * 2.0;
+      float screenRadius = length(p);
+      float screenAngle = atan(p.y, p.x);
+
+      // A thin projected disk. Inner material rotates faster than the outer
+      // edge, while two decorrelated fields break the flow into hot filaments.
+      vec2 diskPoint = vec2(p.x, p.y / 0.205);
+      float diskRadius = length(diskPoint);
+      float diskAngle = atan(diskPoint.y, diskPoint.x);
+      float kepler = uTime * mix(0.34, 0.035, smoother(0.36, 0.96, diskRadius));
+      vec2 flow = vec2(
+        diskAngle * 1.75 - kepler,
+        log(max(diskRadius, 0.025)) * 9.4 + uTime * 0.018
+      );
+      vec2 warp = vec2(
+        fbm(flow * 0.72 + vec2(-uTime * 0.027, 3.7)),
+        fbm(flow * 0.72 + vec2(8.9, uTime * 0.019))
+      ) - 0.5;
+      float turbulence = fbm(flow * 1.18 + warp * 2.7);
+      float fineFlow = fbm(flow * 2.52 - warp * 3.1);
+      float diskWindow = smoother(0.43, 0.485, diskRadius)
+        * (1.0 - smoother(0.91, 1.0, diskRadius));
+      float brokenFlow = smoother(0.29, 0.76, turbulence * 0.7 + fineFlow * 0.43);
+      float radialFilaments = 0.57 + 0.43 * sin(diskRadius * 142.0 + turbulence * 13.0);
+      float diskDensity = diskWindow * brokenFlow * mix(0.58, 1.0, radialFilaments);
+
+      // The back side of the disk is bent above and below the shadow. These
+      // arcs occupy only the polar zones instead of becoming a decorative
+      // full circle.
+      float photonRadius = 0.438;
+      float polarWeight = smoother(0.08, 0.78, abs(p.y) / max(screenRadius, 0.001));
+      float rearPrimary = exp(-abs(screenRadius - 0.505) * 82.0) * polarWeight;
+      float rearSecondary = exp(-abs(screenRadius - 0.468) * 155.0) * polarWeight * 0.42;
+      float azimuthBreak = 0.54 + 0.46 * smoother(
+        0.18,
+        0.82,
+        fbm(vec2(screenAngle * 3.1 - uTime * 0.026, screenRadius * 22.0))
+      );
+      float lensedRear = (rearPrimary + rearSecondary) * azimuthBreak;
+
+      // The apparent photon ring is narrow, incomplete and relativistically
+      // asymmetric. A second subring is intentionally near the resolution
+      // limit rather than a broad neon outline.
+      float approaching = smoother(-0.82, 0.96, p.x / max(screenRadius, 0.001));
+      float beaming = mix(0.16, 1.0, approaching * approaching);
+      float photonRing = exp(-abs(screenRadius - photonRadius) * 215.0);
+      float photonSubring = exp(-abs(screenRadius - photonRadius * 1.032) * 390.0) * 0.28;
+      float ringBreak = smoother(
+        0.28,
+        0.78,
+        fbm(vec2(screenAngle * 4.2 - uTime * 0.018, 9.3))
+      );
+      float photons = (photonRing + photonSubring) * mix(0.38, 1.0, ringBreak) * beaming;
+
+      float gravitationalRedshift = smoother(0.43, 0.82, diskRadius);
+      float heat = exp(-abs(diskRadius - 0.49) * 7.8);
+      vec3 redshifted = vec3(0.5, 0.16, 0.055);
+      vec3 neutral = vec3(0.72, 0.56, 0.35);
+      vec3 blueshifted = vec3(0.27, 0.46, 0.88);
+      vec3 diskColor = mix(redshifted, neutral, gravitationalRedshift);
+      diskColor = mix(diskColor, blueshifted, approaching * approaching * 0.68);
+      diskColor *= 0.17 + fineFlow * 0.52 + heat * 0.42;
+
+      vec3 lensColor = mix(vec3(0.5, 0.24, 0.1), vec3(0.34, 0.52, 0.96), approaching * 0.72);
+      float pulseBand = exp(-abs(screenRadius - fract(uTime * 0.12) * 0.42 - 0.45) * 95.0)
+        * uPulse;
+      float alpha = diskDensity * (0.075 + heat * 0.19 + beaming * 0.15);
+      alpha += lensedRear * (0.055 + beaming * 0.12);
+      alpha += photons * 0.22;
+      alpha += pulseBand * photons * 0.08;
+      alpha *= uPresence;
+
+      vec3 color = diskColor * diskDensity;
+      color += lensColor * lensedRear * (0.18 + beaming * 0.28);
+      color += lensColor * photons * (0.34 + beaming * 0.5);
+      color += vec3(0.24, 0.36, 0.78) * pulseBand * photons * 0.14;
+      if (alpha < 0.004) discard;
+
+      gl_FragColor = vec4(max(color, 0.0), alpha);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }
+  `;
 }
 
 export class AccretionDisk extends THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial> {
@@ -115,12 +157,10 @@ export class AccretionDisk extends THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderM
       toneMapped: true,
     });
 
-    super(new THREE.PlaneGeometry(8.9, 8.9), material);
+    super(new THREE.PlaneGeometry(7.2, 7.2), material);
     material.forceSinglePass = true;
-    this.name = 'Accretion Memory';
-    this.position.z = -0.3;
-    this.rotation.x = 1.36;
-    this.rotation.z = -0.24;
+    this.name = 'Relativistic Accretion Flow';
+    this.position.z = -0.24;
     this.renderOrder = 1;
     this.frustumCulled = false;
   }
@@ -130,8 +170,7 @@ export class AccretionDisk extends THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderM
     this.material.uniforms.uTime!.value = time;
     this.material.uniforms.uPresence!.value = presence;
     this.material.uniforms.uPulse!.value = pulse;
-    this.rotation.z = -0.24 - time * 0.006;
-    this.scale.setScalar(0.92 + presence * 0.08 + Math.sin(time * 0.21) * 0.004);
+    this.scale.setScalar(0.96 + presence * 0.04 + Math.sin(time * 0.17) * 0.002);
   }
 
   dispose(): void {

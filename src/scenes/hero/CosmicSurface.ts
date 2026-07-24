@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { AstronomyAssets } from '../../engine/AstronomyAssets';
 import type { Quality } from '../../engine/renderer';
 import { cosmicFieldGLSL } from './cosmicField';
 
@@ -78,6 +79,8 @@ const vertexShader = /* glsl */ `
   uniform float uProgress;
   uniform float uPulse;
   uniform float uMobile;
+  uniform sampler2D uLolaHeight;
+  uniform float uLunarReady;
   attribute vec2 aParam;
   attribute float aLayer;
   attribute float aEdge;
@@ -90,9 +93,13 @@ const vertexShader = /* glsl */ `
   varying float vHorizon;
   varying float vMaterialField;
   varying float vMaterialRidges;
-  varying float vCrater;
   varying float vLayer;
   varying float vEdge;
+
+  float cosmicObservedElevation(vec2 parameter) {
+    vec2 lunarUv = vec2(fract(parameter.x + 0.067), clamp(parameter.y * 0.5 + 0.5, 0.001, 0.999));
+    return (texture2D(uLolaHeight, lunarUv).r - 0.5) * uLunarReady;
+  }
 
   ${cosmicFieldGLSL}
 
@@ -111,8 +118,6 @@ const vertexShader = /* glsl */ `
       + orbit * 0.02
       + galaxy * 0.005
       + horizon * 0.0035;
-    float seamDistance = min(aParam.x, 1.0 - aParam.x);
-    thickness *= mix(1.0, smoothstep(0.0, 0.024, seamDistance), orbit);
     vec3 transformed = center + surfaceNormal * aLayer * thickness;
 
     vec4 worldPosition = modelMatrix * vec4(transformed, 1.0);
@@ -125,7 +130,6 @@ const vertexShader = /* glsl */ `
     vHorizon = horizon;
     vMaterialField = cosmicMaterialField(aParam);
     vMaterialRidges = cosmicMaterialRidges(aParam);
-    vCrater = cosmicCraterMetric(aParam);
     vLayer = aLayer;
     vEdge = aEdge;
     gl_Position = projectionMatrix * viewMatrix * worldPosition;
@@ -137,6 +141,10 @@ const fragmentShader = /* glsl */ `
   uniform float uProgress;
   uniform float uPulse;
   uniform vec2 uPointer;
+  uniform sampler2D uLrocColor;
+  uniform sampler2D uLolaHeight;
+  uniform vec2 uLolaTexel;
+  uniform float uLunarReady;
   varying vec3 vWorldPosition;
   varying vec3 vLocalPosition;
   varying vec3 vSmoothNormal;
@@ -146,7 +154,6 @@ const fragmentShader = /* glsl */ `
   varying float vHorizon;
   varying float vMaterialField;
   varying float vMaterialRidges;
-  varying float vCrater;
   varying float vLayer;
   varying float vEdge;
 
@@ -187,6 +194,18 @@ const fragmentShader = /* glsl */ `
 
     vec3 tangent = normalize(vTangent - normal * dot(vTangent, normal));
     vec3 bitangent = normalize(cross(normal, tangent));
+    vec2 lunarUv = vec2(fract(vParam.x + 0.067), clamp(vParam.y * 0.5 + 0.5, 0.001, 0.999));
+    float heightLeft = texture2D(uLolaHeight, lunarUv - vec2(uLolaTexel.x, 0.0)).r;
+    float heightRight = texture2D(uLolaHeight, lunarUv + vec2(uLolaTexel.x, 0.0)).r;
+    float heightDown = texture2D(uLolaHeight, lunarUv - vec2(0.0, uLolaTexel.y)).r;
+    float heightUp = texture2D(uLolaHeight, lunarUv + vec2(0.0, uLolaTexel.y)).r;
+    vec2 observedSlope = vec2(heightRight - heightLeft, heightUp - heightDown);
+    float polarFade = 1.0 - smoothstep(0.82, 0.985, abs(vParam.y));
+    vec3 observedNormal = normalize(
+      normal - tangent * observedSlope.x * 2.2 - bitangent * observedSlope.y * 1.8
+    );
+    normal = normalize(mix(normal, observedNormal, planet * uLunarReady * polarFade * 0.58));
+
     vec3 keyDirection = normalize(vec3(-0.66 + uPointer.x * 0.11, 0.52 - uPointer.y * 0.08, 0.68));
     vec3 fillDirection = normalize(vec3(0.72, -0.22, 0.46));
     vec3 halfKey = normalize(keyDirection + viewDirection);
@@ -194,8 +213,10 @@ const fragmentShader = /* glsl */ `
     float nDotL = max(dot(normal, keyDirection), 0.0);
     float roughness = mix(0.28, 0.52, vMaterialField);
     roughness = mix(roughness, mix(0.17, 0.34, vMaterialRidges), orbit);
-    roughness = mix(roughness, mix(0.3, 0.62, vMaterialRidges), planet);
-    roughness = clamp(roughness, 0.12, 0.68);
+    float observedHeight = texture2D(uLolaHeight, lunarUv).r;
+    roughness = mix(roughness, mix(0.62, 0.86, observedHeight), planet * uLunarReady);
+    roughness = mix(roughness, mix(0.42, 0.64, vMaterialRidges), planet * (1.0 - uLunarReady));
+    roughness = clamp(roughness, 0.12, 0.9);
     float distribution = distributionGGX(normal, halfKey, roughness);
     float geometry = geometrySchlickGGX(nDotV, roughness) * geometrySchlickGGX(nDotL, roughness);
     vec3 f0 = mix(vec3(0.055, 0.065, 0.082), vec3(0.14, 0.16, 0.19), orbit);
@@ -204,14 +225,17 @@ const fragmentShader = /* glsl */ `
     vec3 specular = distribution * geometry * fresnel / max(4.0 * nDotV * max(nDotL, 0.001), 0.001);
     specular *= mix(0.72, 1.48, anisotropy * orbit);
 
-    float craterBowl = 1.0 - smoothstep(0.045, 0.175, vCrater);
-    float craterRim = exp(-pow((vCrater - 0.18) / 0.038, 2.0));
     float fracture = pow(clamp(vMaterialRidges, 0.0, 1.0), 5.5);
-    float terminator = smoothstep(-0.08, 0.56, dot(normal, keyDirection));
+    float terminator = smoothstep(-0.2, 0.5, dot(normal, keyDirection));
     vec3 baseColor = mix(vec3(0.0015, 0.0018, 0.0024), vec3(0.008, 0.0095, 0.013), vMaterialField);
-    baseColor = mix(baseColor, vec3(0.002, 0.0024, 0.0035), craterBowl * planet);
-    baseColor += vec3(0.003, 0.0045, 0.008) * craterRim * planet;
-    baseColor += vec3(0.007, 0.009, 0.014) * fracture * planet;
+    vec3 observedAlbedo = texture2D(uLrocColor, lunarUv).rgb;
+    float lunarLuminance = dot(observedAlbedo, vec3(0.2126, 0.7152, 0.0722));
+    float lunarContrast = smoothstep(0.22, 0.88, lunarLuminance);
+    vec3 lunarAlbedo = observedAlbedo * 0.34 + vec3(0.0045);
+    lunarAlbedo *= mix(0.82, 1.08, lunarContrast);
+    lunarAlbedo *= 0.78 + observedHeight * 0.34;
+    baseColor = mix(baseColor, lunarAlbedo, planet * uLunarReady);
+    baseColor += vec3(0.005, 0.006, 0.008) * fracture * planet * (1.0 - uLunarReady);
 
     float brush = pow(
       1.0 - abs(sin(vParam.x * 920.0 + vParam.y * 27.0 + vMaterialField * 4.0)),
@@ -233,6 +257,7 @@ const fragmentShader = /* glsl */ `
     float defect = 1.0 - smoothstep(defectWidth, defectWidth * 2.6, defectDistance);
 
     vec3 color = baseColor * (0.025 + terminator * 0.975);
+    color += baseColor * terminator * planet * uLunarReady * 0.62;
     color += specular * nDotL * mix(0.5, 1.15, orbit + galaxy) * mix(1.0, 0.42, planet);
     color += vec3(0.014, 0.018, 0.027) * max(dot(normal, fillDirection), 0.0);
     color += vec3(0.018, 0.024, 0.043) * brush * (veil + orbit * 0.5);
@@ -247,7 +272,7 @@ const fragmentShader = /* glsl */ `
     color += vec3(0.035, 0.06, 0.14) * spiralSpine * galaxy * (0.16 + vMaterialRidges * 0.34);
     color = mix(color, vec3(0.0005, 0.0007, 0.0014), horizon * 0.9);
     float doppler = smoothstep(-0.85, 0.72, dot(normalize(vLocalPosition.xy + vec2(0.001)), vec2(0.88, 0.48)));
-    color += vec3(0.11, 0.16, 0.32) * edgeHighlight * horizon * mix(0.12, 0.72, doppler);
+    color += vec3(0.025, 0.035, 0.07) * edgeHighlight * horizon * mix(0.08, 0.48, doppler);
 
     float signalPosition = fract(uProgress * 1.72 + uTime * 0.022);
     float signalDistance = circularDistance(vParam.x, signalPosition);
@@ -262,7 +287,6 @@ const fragmentShader = /* glsl */ `
     veilGrade += vec3(0.011, 0.0135, 0.019) * (0.2 + nDotL * 0.55 + anisotropy * 0.18);
     veilGrade += vec3(0.02, 0.045, 0.19) * signal;
     color = mix(color, veilGrade, veil * 0.72);
-
     gl_FragColor = vec4(max(color, 0.0), 1.0);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
@@ -270,7 +294,10 @@ const fragmentShader = /* glsl */ `
 `;
 
 export class CosmicSurface extends THREE.Mesh<THREE.BufferGeometry, THREE.ShaderMaterial> {
-  constructor(quality: Quality) {
+  constructor(
+    quality: Quality,
+    private readonly assets: AstronomyAssets,
+  ) {
     const material = new THREE.ShaderMaterial({
       uniforms: {
         uTime: { value: 0 },
@@ -278,6 +305,10 @@ export class CosmicSurface extends THREE.Mesh<THREE.BufferGeometry, THREE.Shader
         uPulse: { value: 0 },
         uPointer: { value: new THREE.Vector2() },
         uMobile: { value: quality === 'low' ? 1 : 0 },
+        uLrocColor: { value: assets.lunarColor },
+        uLolaHeight: { value: assets.lunarHeight },
+        uLolaTexel: { value: new THREE.Vector2(1 / 1024, 1 / 512) },
+        uLunarReady: { value: 0 },
       },
       vertexShader,
       fragmentShader,
@@ -297,6 +328,7 @@ export class CosmicSurface extends THREE.Mesh<THREE.BufferGeometry, THREE.Shader
     this.material.uniforms.uProgress!.value = progress;
     this.material.uniforms.uPulse!.value = pulse;
     this.material.uniforms.uMobile!.value = mobile ? 1 : 0;
+    this.material.uniforms.uLunarReady!.value = this.assets.lunarReady;
     (this.material.uniforms.uPointer!.value as THREE.Vector2).copy(pointer);
   }
 

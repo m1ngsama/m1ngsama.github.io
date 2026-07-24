@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { Composer } from '../postprocessing/Composer';
 import { HeroScene } from '../scenes/hero/HeroScene';
 import { sampleSequence } from '../scenes/hero/sequence';
+import { AstronomyAssets } from './AstronomyAssets';
 import { createCamera } from './camera';
 import { createRenderer, getQuality, targetPixelRatio, type Quality } from './renderer';
 
@@ -18,6 +19,7 @@ export class Application {
   private readonly cameraTarget = new THREE.Vector3();
   private readonly lookTarget = new THREE.Vector3();
   private readonly quality: Quality;
+  private readonly assets: AstronomyAssets;
   private readonly hero: HeroScene;
   private readonly composer: Composer;
   private readonly precisePointer = window.matchMedia('(pointer: fine)').matches;
@@ -47,10 +49,17 @@ export class Application {
   ) {
     this.quality = getQuality();
     this.renderer = createRenderer(canvas, this.quality);
+    this.assets = new AstronomyAssets(this.renderer, this.quality);
     this.scene.background = new THREE.Color(0x010103);
-    this.hero = new HeroScene(this.quality);
+    this.hero = new HeroScene(this.quality, this.assets);
     this.scene.add(this.hero);
     this.composer = new Composer(this.renderer, this.scene, this.camera, this.quality, options.reducedMotion);
+    void this.assets.settled.then(() => {
+      if (this.destroyed) return;
+      const readyCount = Object.values(this.assets.ready).filter(Boolean).length;
+      document.documentElement.dataset.astronomyAssets = readyCount === 4 ? 'ready' : 'partial';
+      if (this.options.reducedMotion || this.paused) this.renderStaticFrame();
+    });
     this.updateScroll();
     this.applyResize();
   }
@@ -137,7 +146,8 @@ export class Application {
     if (this.destroyed) return;
     document.documentElement.classList.remove('webgl-fallback');
     document.documentElement.classList.add('webgl-ready');
-    this.resize();
+    // The renderer rebuilds its GL state internally. Resizing here would
+    // dispose composer targets that still reference the lost context.
     this.renderStaticFrame();
     if (!this.options.reducedMotion && !this.paused && !document.hidden) {
       this.lastFrameTime = performance.now();
@@ -328,6 +338,7 @@ export class Application {
     this.canvas.removeEventListener('webglcontextlost', this.handleContextLost);
     this.canvas.removeEventListener('webglcontextrestored', this.handleContextRestored);
     this.hero.dispose();
+    this.assets.dispose();
     this.composer.dispose();
     this.renderer.dispose();
   }

@@ -54,6 +54,8 @@ async function loadExperience(): Promise<void> {
     root.classList.add('webgl-ready');
     setMotionControl(false, !motionQuery.matches);
   } catch (error) {
+    app?.destroy();
+    app = undefined;
     root.classList.remove('webgl-ready');
     root.classList.add('webgl-fallback');
     console.warn('The WebGL experiment could not be started.', error);

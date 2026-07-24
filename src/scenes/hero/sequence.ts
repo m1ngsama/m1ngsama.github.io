@@ -41,31 +41,50 @@ function sampleCamera(keys: CameraKeyframe[], progress: number): Pick<SequenceFr
   const upperIndex = Math.max(nextIndex, 1);
   const lower = keys[upperIndex - 1]!;
   const upper = keys[upperIndex]!;
-  const local = smoother((progress - lower.at) / (upper.at - lower.at));
+  const local = THREE.MathUtils.clamp((progress - lower.at) / (upper.at - lower.at), 0, 1);
+  const before = keys[Math.max(upperIndex - 2, 0)]!;
+  const after = keys[Math.min(upperIndex + 1, keys.length - 1)]!;
+
+  const interpolateNumber = (p0: number, p1: number, p2: number, p3: number): number => {
+    const t2 = local * local;
+    const t3 = t2 * local;
+    const tangentStart = (p2 - p0) * 0.5;
+    const tangentEnd = (p3 - p1) * 0.5;
+    return (2 * t3 - 3 * t2 + 1) * p1
+      + (-2 * t3 + 3 * t2) * p2
+      + (t3 - 2 * t2 + local) * tangentStart
+      + (t3 - t2) * tangentEnd;
+  };
+
+  const interpolateVector = (p0: THREE.Vector3, p1: THREE.Vector3, p2: THREE.Vector3, p3: THREE.Vector3): THREE.Vector3 => new THREE.Vector3(
+    interpolateNumber(p0.x, p1.x, p2.x, p3.x),
+    interpolateNumber(p0.y, p1.y, p2.y, p3.y),
+    interpolateNumber(p0.z, p1.z, p2.z, p3.z),
+  );
 
   return {
-    position: lower.position.clone().lerp(upper.position, local),
-    target: lower.target.clone().lerp(upper.target, local),
-    fov: THREE.MathUtils.lerp(lower.fov, upper.fov, local),
+    position: interpolateVector(before.position, lower.position, upper.position, after.position),
+    target: interpolateVector(before.target, lower.target, upper.target, after.target),
+    fov: interpolateNumber(before.fov, lower.fov, upper.fov, after.fov),
   };
 }
 
 const desktopKeys: CameraKeyframe[] = [
-  { at: 0, position: new THREE.Vector3(0.52, -0.06, 4.1), target: new THREE.Vector3(0.26, 0, -0.2), fov: 30 },
-  { at: 0.26, position: new THREE.Vector3(0.14, 0.12, 7.55), target: new THREE.Vector3(0, 0, 0), fov: 32 },
-  { at: 0.48, position: new THREE.Vector3(1.34, 0.72, 7.25), target: new THREE.Vector3(0, 0, 0), fov: 34 },
-  { at: 0.69, position: new THREE.Vector3(-2.72, 1.05, 6.25), target: new THREE.Vector3(-0.18, 0.08, 0), fov: 38 },
-  { at: 0.82, position: new THREE.Vector3(-1.05, 0.34, 7.9), target: new THREE.Vector3(0, 0, 0), fov: 35 },
-  { at: 1, position: new THREE.Vector3(0, 0, 9.6), target: new THREE.Vector3(0, 0, 0), fov: 30 },
+  { at: 0, position: new THREE.Vector3(0.78, -0.16, 3.72), target: new THREE.Vector3(0.24, 0.02, -0.34), fov: 31 },
+  { at: 0.26, position: new THREE.Vector3(-0.42, 0.28, 10.9), target: new THREE.Vector3(-0.34, 0.05, 0), fov: 33 },
+  { at: 0.48, position: new THREE.Vector3(1.58, 0.92, 6.62), target: new THREE.Vector3(-0.12, 0.04, 0), fov: 34 },
+  { at: 0.69, position: new THREE.Vector3(-2.86, 1.12, 6.08), target: new THREE.Vector3(-0.3, 0.09, 0), fov: 35 },
+  { at: 0.82, position: new THREE.Vector3(-1.08, 0.4, 7.76), target: new THREE.Vector3(-0.08, 0.02, 0), fov: 34 },
+  { at: 1, position: new THREE.Vector3(0.12, -0.04, 9.72), target: new THREE.Vector3(0.03, 0, 0), fov: 32 },
 ];
 
 const mobileKeys: CameraKeyframe[] = [
-  { at: 0, position: new THREE.Vector3(0.12, -0.04, 4.2), target: new THREE.Vector3(0.08, 0, -0.2), fov: 40 },
-  { at: 0.26, position: new THREE.Vector3(0.05, 0.08, 8.45), target: new THREE.Vector3(0, 0, 0), fov: 39 },
-  { at: 0.48, position: new THREE.Vector3(0.72, 0.48, 8.8), target: new THREE.Vector3(0, 0, 0), fov: 42 },
-  { at: 0.69, position: new THREE.Vector3(-1.2, 0.65, 8.4), target: new THREE.Vector3(-0.08, 0.05, 0), fov: 43 },
-  { at: 0.82, position: new THREE.Vector3(-0.42, 0.18, 8.85), target: new THREE.Vector3(0, 0, 0), fov: 40 },
-  { at: 1, position: new THREE.Vector3(0, 0, 13.4), target: new THREE.Vector3(0, 0, 0), fov: 35 },
+  { at: 0, position: new THREE.Vector3(0.2, -0.08, 4.08), target: new THREE.Vector3(0.06, 0, -0.26), fov: 39 },
+  { at: 0.26, position: new THREE.Vector3(-0.22, 0.16, 11.5), target: new THREE.Vector3(-0.24, 0.04, 0), fov: 39 },
+  { at: 0.48, position: new THREE.Vector3(0.92, 0.58, 8.32), target: new THREE.Vector3(-0.08, 0.03, 0), fov: 40 },
+  { at: 0.69, position: new THREE.Vector3(-1.42, 0.72, 8.08), target: new THREE.Vector3(-0.16, 0.05, 0), fov: 41 },
+  { at: 0.82, position: new THREE.Vector3(-0.5, 0.22, 8.72), target: new THREE.Vector3(-0.04, 0.02, 0), fov: 39 },
+  { at: 1, position: new THREE.Vector3(0.04, 0, 13.18), target: new THREE.Vector3(0.02, 0, 0), fov: 36 },
 ];
 
 export function sampleSequence(progress: number, mobile: boolean): SequenceFrame {

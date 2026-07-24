@@ -32,6 +32,9 @@ export class Application {
   private charge = 0;
   private pressing = false;
   private adaptiveScale = 1;
+  private appliedPixelRatio = 0;
+  private recoverySamples = 0;
+  private resizeFrame = 0;
   private fpsStartedAt = performance.now();
   private fpsFrames = 0;
   private elapsed = 0;
@@ -49,7 +52,7 @@ export class Application {
     this.scene.add(this.hero);
     this.composer = new Composer(this.renderer, this.scene, this.camera, this.quality, options.reducedMotion);
     this.updateScroll();
-    this.resize();
+    this.applyResize();
   }
 
   start(): void {
@@ -152,34 +155,35 @@ export class Application {
     const frameInterval = this.quality === 'low' ? 1000 / 45 : 1000 / 60;
     if (now - this.lastRenderTime < frameInterval - 1) return;
 
-    const delta = Math.min(Math.max((now - this.lastFrameTime) / 1000, 0), 0.05);
+    const responseDelta = Math.min(Math.max((now - this.lastFrameTime) / 1000, 0), 0.2);
+    const delta = Math.min(responseDelta, 0.05);
     this.lastFrameTime = now;
     this.lastRenderTime = now;
-    this.elapsed += delta;
-    const damping = 1 - Math.exp(-delta * 4.2);
+    this.elapsed += responseDelta;
+    const damping = 1 - Math.exp(-responseDelta * 4.2);
     this.pointer.lerp(this.pointerTarget, damping);
     const previousScroll = this.scrollCurrent;
     this.scrollCurrent = THREE.MathUtils.lerp(this.scrollCurrent, this.scrollTarget, damping * 0.68);
-    const instantVelocity = delta > 0 ? (this.scrollCurrent - previousScroll) / delta : 0;
+    const instantVelocity = responseDelta > 0 ? (this.scrollCurrent - previousScroll) / responseDelta : 0;
     this.scrollVelocity = THREE.MathUtils.lerp(
       this.scrollVelocity,
       instantVelocity,
-      1 - Math.exp(-delta * 8.5),
+      1 - Math.exp(-responseDelta * 8.5),
     );
     if (this.pressing) {
-      this.charge = Math.min(1, this.charge + delta * 0.72);
+      this.charge = Math.min(1, this.charge + responseDelta * 0.72);
       this.pulse = Math.max(this.pulse, this.charge * 0.58);
     } else {
-      this.charge *= Math.exp(-delta * 3.4);
-      this.pulse *= Math.exp(-delta * 2.15);
+      this.charge *= Math.exp(-responseDelta * 3.4);
+      this.pulse *= Math.exp(-responseDelta * 2.15);
     }
 
     this.checkPerformance(now);
     const progress = this.visualProgress(this.scrollCurrent);
-    this.updateCamera(delta, progress);
+    this.updateCamera(responseDelta, progress);
     this.hero.update(
       this.elapsed,
-      delta,
+      responseDelta,
       this.pointer,
       progress,
       this.isMobile(),
@@ -224,19 +228,30 @@ export class Application {
     const fps = (this.fpsFrames * 1000) / sampleTime;
     if (fps < 46 && this.adaptiveScale > 0.66) {
       this.adaptiveScale = Math.max(0.66, this.adaptiveScale - 0.12);
+      this.recoverySamples = 0;
       this.applyPixelRatio();
+    } else if (fps > 57 && this.adaptiveScale < 1) {
+      this.recoverySamples += 1;
+      if (this.recoverySamples >= 3) {
+        this.adaptiveScale = Math.min(1, this.adaptiveScale + 0.06);
+        this.recoverySamples = 0;
+        this.applyPixelRatio();
+      }
+    } else {
+      this.recoverySamples = 0;
     }
     this.fpsFrames = 0;
     this.fpsStartedAt = now;
   }
 
   private renderStaticFrame(): void {
-    const scrollProgress = this.options.reducedMotion ? 0.47 : this.scrollTarget;
+    const scrollProgress = this.options.reducedMotion ? 0.82 : this.scrollTarget;
     const progress = this.options.reducedMotion ? scrollProgress : this.visualProgress(scrollProgress);
     this.scrollCurrent = scrollProgress;
     this.updateCamera(0, progress);
-    this.hero.update(0.8, 0, this.pointer, progress, this.isMobile(), 0, 0);
-    this.composer.update(0.8, 0, progress, this.pointer, 0);
+    const frameTime = this.elapsed > 0 ? this.elapsed : 0.8;
+    this.hero.update(frameTime, 0, this.pointer, progress, this.isMobile(), 0, 0);
+    this.composer.update(frameTime, 0, progress, this.pointer, 0);
     this.composer.render(0);
   }
 
@@ -251,21 +266,31 @@ export class Application {
 
   private applyPixelRatio(): void {
     const ratio = targetPixelRatio(this.quality) * this.adaptiveScale;
+    if (Math.abs(ratio - this.appliedPixelRatio) < 0.001) return;
+    this.appliedPixelRatio = ratio;
     this.renderer.setPixelRatio(ratio);
     this.composer.setPixelRatio(ratio);
-    this.composer.setSize(window.innerWidth, window.innerHeight);
     this.hero.setPixelRatio(ratio * this.composer.getRenderScale());
   }
 
   private resize = (): void => {
+    if (this.resizeFrame !== 0) return;
+    this.resizeFrame = requestAnimationFrame(() => {
+      this.resizeFrame = 0;
+      this.applyResize();
+    });
+  };
+
+  private applyResize(): void {
     const width = window.innerWidth;
     const height = window.innerHeight;
     this.camera.aspect = width / Math.max(height, 1);
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(width, height, false);
     this.applyPixelRatio();
+    this.renderer.setSize(width, height, false);
+    this.composer.setSize(width, height);
     if (this.options.reducedMotion || this.paused) this.renderStaticFrame();
-  };
+  }
 
   private stopLoop(): void {
     this.running = false;
@@ -291,6 +316,7 @@ export class Application {
     if (this.destroyed) return;
     this.destroyed = true;
     this.stopLoop();
+    cancelAnimationFrame(this.resizeFrame);
     window.removeEventListener('resize', this.resize);
     window.removeEventListener('scroll', this.updateScroll);
     window.removeEventListener('pointermove', this.handlePointer);

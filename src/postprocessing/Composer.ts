@@ -3,6 +3,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import type { Quality } from '../engine/renderer';
 
@@ -60,10 +61,11 @@ const cosmologyShader = {
       vec2 radialVelocity = direction / vec2(uAspect, 1.0) * velocity;
       sourceUv -= radialVelocity * (1.0 - horizon * 0.7);
       vec2 tangent = vec2(-direction.y, direction.x) / vec2(uAspect, 1.0);
-      float photonZone = exp(-abs(normalizedRadius - 0.46) * 28.0) * horizon;
+      float photonZone = exp(-abs(normalizedRadius - 0.43) * 36.0) * horizon;
 
-      float aberration = (0.00028 + uPulse * 0.0012 + velocity * 0.2) * smoothstep(0.04, 0.78, normalizedRadius);
-      aberration += photonZone * 0.00075;
+      float aberration = (0.00006 + uPulse * 0.00072 + velocity * 0.14)
+        * smoothstep(0.04, 0.78, normalizedRadius);
+      aberration += photonZone * 0.00042;
       float red = texture2D(tDiffuse, sourceUv + direction / vec2(uAspect, 1.0) * aberration).r;
       float green = texture2D(tDiffuse, sourceUv).g;
       float blue = texture2D(tDiffuse, sourceUv - direction / vec2(uAspect, 1.0) * aberration).b;
@@ -71,13 +73,15 @@ const cosmologyShader = {
 
       vec3 arcA = texture2D(tDiffuse, sourceUv + tangent * 0.0045).rgb;
       vec3 arcB = texture2D(tDiffuse, sourceUv - tangent * 0.0045).rgb;
-      color += (arcA + arcB) * photonZone * 0.095;
+      color += (arcA + arcB) * photonZone * 0.052;
 
       vec2 centered = vUv - 0.5;
       float vignette = 1.0 - smoothstep(0.24, 0.91, length(centered * vec2(uAspect * 0.58, 1.0)));
-      color *= mix(0.64, 1.0, vignette);
-      float grain = hash21(gl_FragCoord.xy + floor(uTime * 17.0)) - 0.5;
-      color += grain * mix(0.0046, 0.0028, horizon);
+      color *= mix(0.76, 1.0, vignette);
+      float grain = fract(
+        52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)))
+      ) - 0.5;
+      color += grain * mix(0.00072, 0.00048, horizon);
       gl_FragColor = vec4(max(color, 0.0), 1.0);
     }
   `,
@@ -88,6 +92,7 @@ export class Composer {
   private readonly renderPass?: RenderPass;
   private readonly bloom?: UnrealBloomPass;
   private readonly cosmology?: ShaderPass;
+  private readonly smaa?: SMAAPass;
   private readonly output?: OutputPass;
   private readonly renderScale: number;
 
@@ -98,7 +103,7 @@ export class Composer {
     quality: Quality,
     reducedMotion: boolean,
   ) {
-    this.renderScale = quality === 'high' ? 0.82 : quality === 'medium' ? 0.68 : 1;
+    this.renderScale = quality === 'high' ? 1 : quality === 'medium' ? 0.88 : 1;
     if (quality === 'low' || reducedMotion) return;
 
     this.composer = new EffectComposer(renderer);
@@ -108,14 +113,16 @@ export class Composer {
     const high = quality === 'high';
     this.bloom = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
-      high ? 0.38 : 0.25,
-      high ? 0.34 : 0.25,
-      high ? 0.76 : 0.82,
+      high ? 0.25 : 0.19,
+      high ? 0.29 : 0.22,
+      high ? 0.88 : 0.91,
     );
     this.composer.addPass(this.bloom);
 
     this.cosmology = new ShaderPass(cosmologyShader);
     this.composer.addPass(this.cosmology);
+    this.smaa = new SMAAPass();
+    this.composer.addPass(this.smaa);
     this.output = new OutputPass();
     this.composer.addPass(this.output);
   }
@@ -151,6 +158,7 @@ export class Composer {
     this.renderPass?.dispose();
     this.bloom?.dispose();
     this.cosmology?.dispose();
+    this.smaa?.dispose();
     this.output?.dispose();
     this.composer?.dispose();
   }

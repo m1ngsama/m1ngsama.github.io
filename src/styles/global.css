@@ -178,6 +178,10 @@ a {
     linear-gradient(180deg, rgba(2, 2, 4, 0.12), transparent 24%, transparent 76%, rgba(2, 2, 4, 0.34));
 }
 
+.webgl-ready .experience__vignette {
+  background: linear-gradient(180deg, rgba(2, 2, 4, 0.075), transparent 21%, transparent 79%, rgba(2, 2, 4, 0.13));
+}
+
 .experience__grain {
   opacity: 0.032;
   mix-blend-mode: soft-light;

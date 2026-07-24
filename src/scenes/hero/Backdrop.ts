@@ -1,7 +1,9 @@
 import * as THREE from 'three';
+import type { Quality } from '../../engine/renderer';
 
 export class Backdrop extends THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial> {
-  constructor() {
+  constructor(quality: Quality) {
+    const octaves = quality === 'high' ? 4 : quality === 'medium' ? 3 : 2;
     const material = new THREE.ShaderMaterial({
       uniforms: {
         uTime: { value: 0 },
@@ -45,7 +47,7 @@ export class Backdrop extends THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMateri
         float fbm(vec2 p) {
           float value = 0.0;
           float amplitude = 0.5;
-          for (int i = 0; i < 4; i++) {
+          for (int i = 0; i < ${octaves}; i++) {
             value += noise2(p) * amplitude;
             p = p * 2.04 + vec2(7.3, 3.1);
             amplitude *= 0.5;
@@ -68,6 +70,7 @@ export class Backdrop extends THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMateri
           vec2 p = (vUv - 0.5) * vec2(uAspect, 1.0);
           p -= uPointer * vec2(0.012, 0.008);
           float radius = length(p);
+          float polarAngle = atan(p.y, p.x);
           float world = smoother(0.12, 0.3, uProgress) * (1.0 - smoother(0.42, 0.54, uProgress));
           float galaxy = smoother(0.54, 0.72, uProgress) * (1.0 - smoother(0.86, 0.98, uProgress));
           float horizon = smoother(0.85, 0.98, uProgress);
@@ -86,18 +89,25 @@ export class Backdrop extends THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMateri
           float dustLane = exp(-abs(galaxyP.y + sin(galaxyP.x * 5.2) * 0.018) * 38.0) * galaxy;
 
           float halo = exp(-radius * mix(5.2, 3.8, world));
-          float lensRadius = mix(0.17, 0.235, horizon);
-          float photonRing = exp(-abs(radius - lensRadius) * mix(105.0, 175.0, horizon)) * horizon;
-          float echoRing = exp(-abs(radius - lensRadius * 1.035) * 42.0) * horizon * 0.2;
+          float lensRadius = mix(0.34, 0.425, horizon);
+          float causticArc = smoothstep(-0.82, 0.65, cos(polarAngle - 0.38));
+          causticArc *= 0.34 + 0.66 * smoothstep(-0.55, 0.92, cos(polarAngle * 2.0 + 0.7));
+          float photonRing = exp(-abs(radius - lensRadius) * mix(115.0, 185.0, horizon))
+            * horizon
+            * causticArc;
+          float echoRing = exp(-abs(radius - lensRadius * 1.038) * 48.0)
+            * horizon
+            * causticArc
+            * 0.11;
           float horizonShadow = 1.0 - smoothstep(lensRadius * 0.72, lensRadius * 0.98, radius);
           float pulseRing = exp(-abs(radius - fract(uTime * 0.18) * 0.65) * 75.0) * uPulse;
 
           vec3 color = vec3(0.0007, 0.0009, 0.0022);
           color += vec3(0.009, 0.014, 0.038) * halo;
-          color += vec3(0.011, 0.021, 0.062) * cosmicWeb * (0.24 + galaxy * 0.62);
-          color += vec3(0.035, 0.06, 0.16) * galaxyHaze;
+          color += vec3(0.006, 0.011, 0.028) * cosmicWeb * (0.18 + galaxy * 0.44);
+          color += vec3(0.022, 0.034, 0.08) * galaxyHaze;
           color -= vec3(0.018, 0.022, 0.038) * dustLane * 0.7;
-          color += vec3(0.24, 0.38, 0.95) * photonRing * 0.23;
+          color += vec3(0.2, 0.31, 0.72) * photonRing * 0.16;
           color += vec3(0.08, 0.12, 0.32) * echoRing;
           color += vec3(0.08, 0.18, 0.52) * pulseRing * 0.24;
           color *= 1.0 - horizonShadow * horizon;

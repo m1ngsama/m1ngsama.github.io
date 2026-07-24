@@ -152,14 +152,14 @@ const vertexShader = /* glsl */ `
 
     float shimmer = 0.84 + 0.16 * sin(uTime * (0.42 + aSeed.y * 1.8) + aSeed.x * TAU);
     float centralVoid = mix(1.0, smoothstep(1.64, 2.42, radius), uHorizon * 0.95);
-    float fieldPresence = mix(0.24, 1.0, stage) * mix(0.72, 1.0, uProgress);
+    float fieldPresence = mix(0.05, 1.0, stage) * mix(0.38, 1.0, uProgress);
     vAlpha = (0.14 + brightness * 0.72) * shimmer * fieldPresence * centralVoid;
     vAlpha *= mix(1.0, 0.78, depth);
     vAlpha += lensBand * lensStage * (0.035 + brightness * 0.18);
     vAlpha *= 1.0 + uEnergy * (0.08 + brightness * 0.18);
     vArc = lensBand * lensStage * (0.35 + filament * 0.65);
     vAngle = atan(tangent.y, tangent.x);
-    vFlare = smoothstep(0.86, 0.995, brightness) * (0.35 + stage * 0.65);
+    vFlare = smoothstep(0.982, 0.9995, brightness) * (0.28 + stage * 0.72);
 
     vec4 viewPosition = modelViewMatrix * vec4(transformed, 1.0);
     gl_Position = projectionMatrix * viewPosition;

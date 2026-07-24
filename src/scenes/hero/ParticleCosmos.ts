@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { Quality } from '../../engine/renderer';
+import { cosmicFieldGLSL } from './cosmicField';
 
 function seededRandom(seed: number): () => number {
   let state = seed >>> 0;
@@ -39,6 +40,7 @@ const vertexShader = /* glsl */ `
   uniform float uProgress;
   uniform float uPulse;
   uniform float uPixelRatio;
+  uniform float uMobile;
   uniform vec2 uPointer;
   attribute vec2 aParam;
   attribute vec3 aSeed;
@@ -46,85 +48,43 @@ const vertexShader = /* glsl */ `
   varying float vAlpha;
   varying float vRay;
 
-  const float PI = 3.141592653589793;
-  const float TAU = 6.283185307179586;
-
-  float smoother(float a, float b, float value) {
-    float x = clamp((value - a) / (b - a), 0.0, 1.0);
-    return x * x * x * (x * (x * 6.0 - 15.0) + 10.0);
-  }
-
-  vec3 planetSurface(vec2 parameter) {
-    float longitude = parameter.x * TAU + 0.42;
-    float latitude = parameter.y * PI * 0.5;
-    float latitudeRadius = cos(latitude);
-    vec3 direction = vec3(
-      latitudeRadius * cos(longitude),
-      sin(latitude),
-      latitudeRadius * sin(longitude)
-    );
-    return direction * (2.1 + aSeed.x * 0.075);
-  }
-
-  vec3 mobiusSurface(vec2 parameter) {
-    float theta = parameter.x * TAU;
-    float width = parameter.y * 0.58;
-    float radius = 2.14;
-    return vec3(
-      (radius + width * cos(theta)) * cos(theta),
-      (radius + width * cos(theta)) * sin(theta),
-      width * sin(theta)
-    );
-  }
-
-  vec3 galaxySurface(vec2 parameter) {
-    float armOffset = floor(aSeed.z * 3.0) * TAU / 3.0;
-    float theta = (parameter.x * 3.2 + 0.035) * TAU + armOffset * 0.14;
-    float radius = 0.2 + pow(parameter.x, 0.68) * 2.94;
-    float taper = mix(0.52, 0.075, pow(parameter.x, 0.58));
-    float ribbon = parameter.y * taper + (aSeed.x - 0.5) * taper * 0.38;
-    float r = radius + ribbon;
-    float z = (parameter.y + aSeed.y - 0.5) * mix(0.2, 0.04, parameter.x);
-    return vec3(cos(theta) * r, sin(theta) * r, z);
-  }
-
-  vec3 horizonSurface(vec2 parameter) {
-    float theta = parameter.x * TAU + (aSeed.x - 0.5) * 0.035;
-    float radius = 2.16 + parameter.y * 0.042 + (aSeed.y - 0.5) * 0.025;
-    return vec3(cos(theta) * radius, sin(theta) * radius, parameter.y * 0.018);
-  }
+  ${cosmicFieldGLSL}
 
   void main() {
-    float orbit = smoother(0.39, 0.535, uProgress);
-    float galaxy = smoother(0.565, 0.745, uProgress);
-    float horizon = smoother(0.865, 0.98, uProgress);
-    vec3 transformed = planetSurface(aParam);
-    transformed = mix(transformed, mobiusSurface(aParam), orbit);
-    transformed = mix(transformed, galaxySurface(aParam), galaxy);
-    transformed = mix(transformed, horizonSurface(aParam), horizon);
+    float veil;
+    float planet;
+    float orbit;
+    float galaxy;
+    float horizon;
+    cosmicPhases(aParam, veil, planet, orbit, galaxy, horizon);
+    vec3 transformed = cosmicSurfacePoint(aParam);
+    vec3 surfaceNormal = cosmicSurfaceNormal(aParam);
+    float detachment = (aSeed.x - 0.5) * (0.035 + galaxy * 0.095 + horizon * 0.045);
+    transformed += surfaceNormal * detachment;
 
-    float ripple = sin(length(transformed.xy) * 9.0 - uTime * 7.0 + aSeed.z * TAU);
+    float ripple = sin(length(transformed.xy) * 9.0 - uTime * 7.0 + aSeed.z * COSMIC_TAU);
     transformed += normalize(transformed + vec3(0.001)) * ripple * uPulse * 0.075;
-    transformed.xy += uPointer * 0.025 * (0.3 + aSeed.z);
+    transformed.xy += uPointer * 0.012 * (0.3 + aSeed.z);
 
-    float planetPresence = smoother(0.22, 0.32, uProgress) * (1.0 - smoother(0.41, 0.5, uProgress));
-    float galaxyPresence = smoother(0.53, 0.68, uProgress) * (1.0 - smoother(0.88, 0.98, uProgress));
-    float horizonPresence = smoother(0.87, 0.96, uProgress);
-    float selection = smoothstep(0.76, 0.99, aSeed.y + galaxyPresence * 0.48);
-    float planetSelection = step(0.97, aSeed.y);
-    vAlpha = (planetPresence * planetSelection * 0.36 + galaxyPresence * selection + horizonPresence * 0.52)
+    float selection = smoothstep(0.82, 0.995, aSeed.y + galaxy * 0.36);
+    float planetSelection = step(0.988, aSeed.y);
+    float horizonSelection = smoothstep(0.94, 0.997, aSeed.y);
+    float asymmetricArc = smoothstep(-0.35, 0.92, cos(aParam.x * COSMIC_TAU - 0.7));
+    vAlpha = (planet * planetSelection * 0.24
+      + galaxy * selection
+      + horizon * horizonSelection * asymmetricArc * 0.46)
       * (0.32 + aSeed.x * 0.68);
 
     vec3 cold = mix(vec3(0.32, 0.48, 1.0), vec3(0.76, 0.86, 1.0), aSeed.x);
     vec3 warm = vec3(1.0, 0.76, 0.52);
-    float coreHeat = (1.0 - smoothstep(0.0, 0.3, aParam.x)) * galaxyPresence;
+    float coreHeat = (1.0 - smoothstep(0.0, 0.3, aParam.x)) * galaxy;
     vColor = mix(cold, warm, coreHeat * (0.28 + aSeed.y * 0.42));
-    vRay = step(0.89, aSeed.z);
+    vRay = step(0.9975, aSeed.z);
 
     vec4 viewPosition = modelViewMatrix * vec4(transformed, 1.0);
     gl_Position = projectionMatrix * viewPosition;
     float size = mix(0.72, 2.25, aSeed.x * aSeed.x) * uPixelRatio;
-    size *= mix(0.85, 1.35, galaxyPresence);
+    size *= mix(0.85, 1.28, galaxy);
     gl_PointSize = clamp(size * (13.0 / max(-viewPosition.z, 0.8)), 0.8, 8.5 * uPixelRatio);
   }
 `;
@@ -159,6 +119,7 @@ export class ParticleCosmos extends THREE.Points<THREE.BufferGeometry, THREE.Sha
         uPulse: { value: 0 },
         uPointer: { value: new THREE.Vector2() },
         uPixelRatio: { value: Math.min(window.devicePixelRatio, quality === 'high' ? 1.6 : 1.3) },
+        uMobile: { value: quality === 'low' ? 1 : 0 },
       },
       vertexShader,
       fragmentShader,
@@ -175,10 +136,11 @@ export class ParticleCosmos extends THREE.Points<THREE.BufferGeometry, THREE.Sha
     this.renderOrder = 4;
   }
 
-  update(time: number, progress: number, pointer: THREE.Vector2, pulse: number): void {
+  update(time: number, progress: number, pointer: THREE.Vector2, pulse: number, mobile: boolean): void {
     this.material.uniforms.uTime!.value = time;
     this.material.uniforms.uProgress!.value = progress;
     this.material.uniforms.uPulse!.value = pulse;
+    this.material.uniforms.uMobile!.value = mobile ? 1 : 0;
     (this.material.uniforms.uPointer!.value as THREE.Vector2).copy(pointer);
   }
 

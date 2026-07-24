@@ -10,13 +10,13 @@ import { Starfield } from './Starfield';
 import { WorldCore } from './WorldCore';
 
 export class HeroScene extends THREE.Group {
-  private readonly backdrop = new Backdrop();
+  private readonly backdrop: Backdrop;
   private readonly starfield: Starfield;
   private readonly galaxy: Galaxy;
   private readonly surface: CosmicSurface;
   private readonly particles: ParticleCosmos;
   private readonly world: WorldCore;
-  private readonly accretion = new AccretionDisk();
+  private readonly accretion: AccretionDisk;
   private readonly matter = new THREE.Group();
 
   constructor(private readonly quality: Quality) {
@@ -24,10 +24,12 @@ export class HeroScene extends THREE.Group {
     this.name = 'One Surface Cosmology';
 
     this.starfield = new Starfield(quality);
+    this.backdrop = new Backdrop(quality);
     this.galaxy = new Galaxy(quality);
     this.surface = new CosmicSurface(quality);
     this.particles = new ParticleCosmos(quality);
     this.world = new WorldCore(quality);
+    this.accretion = new AccretionDisk(quality);
 
     this.matter.name = 'The Only Matter';
     this.matter.add(this.surface, this.world, this.particles);
@@ -87,7 +89,7 @@ export class HeroScene extends THREE.Group {
     );
 
     this.surface.update(time, progress, pointer, energy, mobile);
-    this.particles.update(time, progress, pointer, energy);
+    this.particles.update(time, progress, pointer, energy, mobile);
     this.world.update(time, frame, pointer, energy);
     this.starfield.update(time, progress, frame, pointer, energy);
     this.galaxy.update(time, frame, pointer, energy);

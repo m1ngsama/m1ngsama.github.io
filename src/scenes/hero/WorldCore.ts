@@ -28,17 +28,36 @@ const atmosphereFragmentShader = /* glsl */ `
     return fract((p.x + p.y) * p.z);
   }
 
+  float noise3(vec3 p) {
+    vec3 cell = floor(p);
+    vec3 local = fract(p);
+    local = local * local * (3.0 - 2.0 * local);
+    return mix(
+      mix(mix(hash31(cell), hash31(cell + vec3(1, 0, 0)), local.x),
+          mix(hash31(cell + vec3(0, 1, 0)), hash31(cell + vec3(1, 1, 0)), local.x), local.y),
+      mix(mix(hash31(cell + vec3(0, 0, 1)), hash31(cell + vec3(1, 0, 1)), local.x),
+          mix(hash31(cell + vec3(0, 1, 1)), hash31(cell + vec3(1, 1, 1)), local.x), local.y),
+      local.z
+    );
+  }
+
   void main() {
     vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
-    float rim = pow(1.0 - abs(dot(normalize(vWorldNormal), viewDirection)), 2.7);
+    vec3 normal = normalize(vWorldNormal);
+    float viewCosine = abs(dot(normal, viewDirection));
+    float opticalDepth = pow(1.0 - viewCosine, 4.1);
+    float innerRim = pow(1.0 - viewCosine, 10.0);
     vec3 lightDirection = normalize(vec3(-0.72 + uPointer.x * 0.12, 0.34, 0.62));
-    float lightSide = smoothstep(-0.18, 0.52, dot(normalize(vWorldNormal), lightDirection));
-    float turbulence = hash31(normalize(vWorldPosition) * 72.0 + floor(uTime * 2.0)) - 0.5;
+    float lightDot = dot(normal, lightDirection);
+    float lightSide = smoothstep(-0.12, 0.58, lightDot);
+    float terminator = exp(-abs(lightDot + 0.04) * 7.5);
+    float turbulence = noise3(normal * 18.0 + vec3(0.0, 0.0, uTime * 0.025)) - 0.5;
     float wave = sin(atan(vWorldPosition.y, vWorldPosition.x) * 9.0 - uTime * 0.45) * uPulse;
-    float alpha = rim * (0.11 + lightSide * 0.42) * uPresence;
-    alpha += max(wave, 0.0) * rim * 0.08;
-    vec3 color = mix(vec3(0.12, 0.2, 0.52), vec3(0.58, 0.72, 1.25), lightSide);
-    color *= 0.76 + turbulence * 0.08;
+    float alpha = opticalDepth * (0.025 + lightSide * 0.23) * uPresence;
+    alpha += innerRim * terminator * 0.19 * uPresence;
+    alpha += max(wave, 0.0) * opticalDepth * 0.035;
+    vec3 color = mix(vec3(0.055, 0.09, 0.22), vec3(0.31, 0.43, 0.82), lightSide);
+    color *= 0.72 + turbulence * 0.055;
     gl_FragColor = vec4(color, alpha);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
@@ -87,14 +106,14 @@ export class WorldCore extends THREE.Group {
   }
 
   update(time: number, frame: SequenceFrame, pointer: THREE.Vector2, pulse: number): void {
-    const size = frame.world * 0.96 + frame.orbit * 0.36 + frame.galaxy * 0.045 + frame.horizon * 0.92;
+    const size = frame.world * 0.96 + frame.horizon * 0.72;
     this.core.visible = size > 0.015;
     this.core.scale.setScalar(Math.max(size, 0.001));
     this.core.rotation.y = time * 0.018;
     const atmospherePresence = frame.world;
     this.atmosphere.visible = atmospherePresence > 0.005;
     const atmosphereScale = frame.world;
-    this.atmosphere.scale.setScalar(Math.max(atmosphereScale, 0.001) * (1.04 + Math.sin(time * 0.24) * 0.004 + pulse * 0.012));
+    this.atmosphere.scale.setScalar(Math.max(atmosphereScale, 0.001) * (1.035 + pulse * 0.004));
     this.atmosphereMaterial.uniforms.uTime!.value = time;
     this.atmosphereMaterial.uniforms.uPresence!.value = atmospherePresence;
     this.atmosphereMaterial.uniforms.uPulse!.value = pulse;
